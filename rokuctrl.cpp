@@ -8,6 +8,15 @@
 #include <ncurses.h>
 #include <regex>
 
+void flash_string(std::string s) {
+    printw("%s", s.c_str());
+    refresh();
+    napms(1500);
+    move(17,0);
+    clrtobot();
+    refresh();
+}
+
 
 size_t write_callback(void* contents, size_t size, size_t nmemb, void* userdata) {
     // Compute the real size of the incoming buffer
@@ -58,10 +67,9 @@ void curl_execute(CURL *curl,
 
     std::regex re { R"([^\s])" };
 
-    if (std::regex_match(readBuffer, re)) {
-	printw("%s", readBuffer.c_str());
-	readBuffer = "";
-    }
+    if (std::regex_match(readBuffer, re)) 
+	flash_string(readBuffer);
+
 }
 
 struct Denon_control {
@@ -167,7 +175,12 @@ void handle_keypress(char key, Roku_query& roku, Denon_control& denon) {
 	case '\b': roku.rokucommand("backspace"); break;
 	case 'i': roku.rokucommand("info"); break;
 	case ' ': roku.rokucommand("select"); break;
-	default: printw("You pressed the '%c' key!\n", key); break;
+	default: { 
+	    const char *skeleton = "You pressed the '%c' key!\n"; 
+	    char buf[std::strlen(skeleton)+1];
+	    sprintf(buf, skeleton, key); 
+	    flash_string(buf); break;
+	}    
     }
 }
 
