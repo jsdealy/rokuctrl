@@ -3,6 +3,7 @@
 #include <cstring>
 #include <cstdlib>
 #include <csignal>
+#include <format>
 #include <unistd.h>
 #include <iostream>
 #include <curl/curl.h>
@@ -17,94 +18,13 @@
 #include <string>
 #include <array>
 #include <regex>
-
-import curl_helpers;
-
-enum class HTTP_MODE { GET, POST };
-
-void flash_string(std::string s) {
-    printw("%s", s.c_str());
-    refresh();
-    napms(1500);
-    move(17,0);
-    clrtobot();
-    refresh();
-}
+#include "./curl_helpers.h"
 
 
-std::string getOutputFromShellCommand(const char* cmd) {
-    std::array<char, 128> buffer;
-    std::string result;
-    std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd, "r"), pclose);
-    if (!pipe) {
-        throw std::runtime_error("popen() failed!");
-    }
-    while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
-        result += buffer.data();
-    }
-    return result;
-}
-
-
-size_t write__callback(void* contents, size_t size, size_t nmemb, void* userdata) {
-    // Compute the real size of the incoming buffer
-    size_t realSize = size * nmemb;
-
-    // Convert the buffer to a string and append it to the output string
-    std::string* outStr = (std::string*)userdata;
-    outStr->append((char*)contents, realSize);
-
-    return realSize;
-}
-
-void curl_execute(CURL *curl, 
-		  std::string& readBuffer,
-		  std::string& URL,
-		  HTTP_MODE mode = HTTP_MODE::GET,
-		  std::string post_command = "", 
-		  size_t (*write_callback)(void* contents, size_t size, size_t nmemb, void* userdata) = write__callback) {
-
-    curl_easy_setopt(curl, CURLOPT_URL, URL.c_str());
-
-    if (mode == HTTP_MODE::POST) {
-	/* this ensures we send a post request <= 09/18/23 18:39:06 */ 
-	curl_easy_setopt(curl, CURLOPT_POST, 1L);
-
-	/* this is what sets the posted data <= 09/18/23 18:39:16 */ 
-	curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post_command.c_str());
-    }     
-
-    // Send all returned data to this function
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
-
-    // Pass our 'readBuffer' to the callback function
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-
-    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 3L);  // timeout after 3 seconds
-
-    curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 5L);  // connection timeout after 5 seconds
-
-    /* TURN THIS ON FOR DEBUGGING <= 09/18/23 13:25:46 */ 
-    /* curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L); */
-
-    // Perform the request, and check for errors
-    CURLcode res = curl_easy_perform(curl);
-
-    if(res != CURLE_OK) {
-	endwin();
-	std::cerr << "curl_easy_perform() failed: " << curl_easy_strerror(res) << std::endl;
-	throw std::runtime_error("curl performance error");
-    } 
-
-    boost::regex re { R"([^\s])" };
-
-    if (boost::regex_match(readBuffer, re)) 
-	flash_string(readBuffer);
-
-}
 
 struct Denon_control {
-    Denon_control() {
+    Denon_control(std::string ip_input) {
+	ip = ip_input;
 	curl = curl_easy_init();
 	if (!curl) { throw std::runtime_error("curl initialization failed"); }
 	readBuffer = "";
@@ -125,15 +45,14 @@ struct Denon_control {
 private: 
     CURL* curl;
     std::string readBuffer;
+    std::string ip;
 
     enum class VOL { UP, DOWN };
 
     void volume(VOL vol) {
 
-	const char *baseURL = getenv("DENON_URL");
-	baseURL = baseURL ? baseURL : "http://192.168.1.149";
 	std::string tailURL { "/MainZone/index.put.asp" };
-	std::string URL { baseURL }; URL.append(tailURL);
+	std::string URL = std::format("http://{}{}", ip, tailURL);
 
 	char *commandbody;
 	std::string command { "cmd0=" };
@@ -158,7 +77,8 @@ private:
 
 
 struct Roku_query {
-    Roku_query() {
+    Roku_query(std::string ip_input) {
+	ip = ip_input;
 	curl = curl_easy_init();
 	if (!curl) { throw std::runtime_error("curl initialization failed"); }
 	readBuffer = "";
@@ -170,85 +90,111 @@ struct Roku_query {
 
     void rokucommand(const char * command) {
 
-	const char *baseURL = getenv("ROKU_URL");
-	baseURL = baseURL ? baseURL : "http://192.168.1.107:8060/keypress/";
-	std::string URL { baseURL }; 
+	std::string URL = std::format("http://{}:8060/keypress/", ip); 
 	
 	URL = URL.append(command).c_str();
 
-	curl_execute(curl, readBuffer, URL);
+	curl_execute(curl, readBuffer, URL, HTTP_MODE::POST);
 
     }
 
 private: 
     CURL* curl;
     std::string readBuffer;
+    std::string ip;
 
 };
 
+#include <cctype>
+#include <iomanip>
+#include <sstream>
 
-void handle_keypress(char key, Roku_query& roku, Denon_control& denon) {
-    switch (key) {
-	case '+': denon.volumeUp(); break;
-	case '-': denon.volumeDown(); break;
-	case 'a': roku.rokucommand("play"); break;
-	case 's': roku.rokucommand("pause"); break;
-	case 'h': roku.rokucommand("left"); break;
-	case 'l': roku.rokucommand("right"); break;
-	case 'k': roku.rokucommand("up"); break;
-	case 'j': roku.rokucommand("down"); break;
-	case 'd': roku.rokucommand("rev"); break;
-	case 'f': roku.rokucommand("fwd"); break;
-	case 'g': roku.rokucommand("home"); break;
-	case 'b': roku.rokucommand("back"); break;
-	case 'r': roku.rokucommand("instantreplay"); break;
-	case '\n': roku.rokucommand("enter"); break;
-	case '\b': roku.rokucommand("backspace"); break;
-	case 'i': roku.rokucommand("info"); break;
-	case ' ': roku.rokucommand("select"); break;
-	default: { 
-	    const char *skeleton = "You pressed the '%c' key!\n"; 
-	    char buf[std::strlen(skeleton)+1];
-	    sprintf(buf, skeleton, key); 
-	    flash_string(buf); break;
-	}    
+
+std::string url_encode(const std::string value) {
+    std::ostringstream escaped;
+    escaped.fill('0');
+    escaped << std::hex;
+
+    for (std::string::const_iterator i = value.begin(), n = value.end(); i != n; ++i) {
+        std::string::value_type c = (*i);
+
+        // Keep alphanumeric and other accepted characters intact
+        if (isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~') {
+            escaped << c;
+            continue;
+        }
+
+        // Any other characters are percent-encoded
+        escaped << std::uppercase;
+        escaped << '%' << std::setw(2) << int((unsigned char) c);
+        escaped << std::nouppercase;
     }
+
+    return escaped.str();
 }
 
-template <typename T>
-bool inVec(std::vector<T>& vec, T&& target) {
-    for (T& x : vec) if (x == target) return true;
-    return false;
-}
+struct LiteralMode {
+    LiteralMode() { litmode = false; };
 
-bool testForRoku(CURL *curl, std::string ip) {
-    std::string buffer;
-    curl_execute(curl, buffer, ip);
-    
-    return false;
-}
+    enum class KeyType { COMMAND, NONCOMMAND };
+    void toggle() { litmode = !litmode; };
+    operator bool() { return litmode; };
 
-bool testForDenon(std::string s) {
-    return false;
-}
-
-struct IPs {
-    IPs() { setIPs(); };
-    void setIPs() {
-	std::string pingOutput { getOutputFromShellCommand("timeout 7 ping -b 192.168.1.255") };
-	std::regex re { R"(192\.168\.1\.[\d]{1,3})" };
-	std::vector<std::string> ips;
-	/* this works since regex_search returns true each time it finds a hit <= 09/25/23 23:44:40 */ 
-	for (std::smatch sm; std::regex_search(pingOutput, sm, re);) {
-	    if (!inVec(ips, std::string(sm[0]))) ips.push_back(sm[0]);
-	    pingOutput = sm.suffix();
+    void handle(Roku_query& roku, const std::string literal, KeyType keytype = KeyType::NONCOMMAND, std::string command = "") {
+	if (litmode) { 
+	    if (command != "backspace") {
+		command = "";
+		command.append("Lit_");
+		command.append(url_encode(literal));
+	    } 
+	    roku.rokucommand(command.c_str()); 
 	}
-	std::unique_ptr<CURL, decltype(&curl_easy_cleanup)> curl(curl_easy_init(), curl_easy_cleanup);
+	else { 
+	    if (keytype == KeyType::COMMAND) { roku.rokucommand(command.c_str()); }
+	    else {
+		const char *skeleton = "You pressed the '%c' key!\n"; 
+		char buf[std::strlen(skeleton)+1];
+		sprintf(buf, skeleton, literal[0]); 
+		flash_string(buf); 
+	    }
+	}
     }
-private: 
-    std::string denon;
-    std::string roku;
+
+    private: 
+	bool litmode; 
+
 };
+
+void handle_keypress(LiteralMode& literalmode, char key, Roku_query& roku, Denon_control& denon) {
+
+    switch (key) {
+	case '': {
+	    literalmode.toggle();
+	    if (literalmode) flash_string("literal mode"); else flash_string("default mode");
+	    break;
+	}
+	case '=': denon.volumeUp(); break;
+	case '-': denon.volumeDown(); break;
+	case 'a': literalmode.handle(roku, "a", LiteralMode::KeyType::COMMAND, "play"); break;
+	case 's': literalmode.handle(roku, "s", LiteralMode::KeyType::COMMAND, "pause"); break;
+	case 'h': literalmode.handle(roku, "h", LiteralMode::KeyType::COMMAND, "left"); break;
+	case 'l': literalmode.handle(roku, "l", LiteralMode::KeyType::COMMAND, "right"); break;
+	case 'k': literalmode.handle(roku, "k", LiteralMode::KeyType::COMMAND, "up"); break;
+	case 'j': literalmode.handle(roku, "j", LiteralMode::KeyType::COMMAND, "down"); break;
+	case 'd': literalmode.handle(roku, "d", LiteralMode::KeyType::COMMAND, "rev"); break;
+	case 'f': literalmode.handle(roku, "f", LiteralMode::KeyType::COMMAND, "fwd"); break;
+	case 'g': literalmode.handle(roku, "g", LiteralMode::KeyType::COMMAND, "home"); break;
+	case 'b': literalmode.handle(roku, "b", LiteralMode::KeyType::COMMAND, "back"); break;
+	case 'r': literalmode.handle(roku, "r", LiteralMode::KeyType::COMMAND, "instantreplay"); break;
+	case '\n': literalmode.handle(roku, "\n", LiteralMode::KeyType::COMMAND, "enter"); break;
+	case '': literalmode.handle(roku, "\b", LiteralMode::KeyType::COMMAND, "backspace"); break;
+	case '\x07': literalmode.handle(roku, "\b", LiteralMode::KeyType::COMMAND, "backspace"); break;
+	case 'i': literalmode.handle(roku, "i", LiteralMode::KeyType::COMMAND, "info"); break;
+	case ' ': literalmode.handle(roku, " ", LiteralMode::KeyType::COMMAND, "select"); break;
+	default: literalmode.handle(roku, std::format("{}", key));
+    }
+}
+
 
 
 int main() {
@@ -273,17 +219,26 @@ i => info\n\
 enter => enter\n\
 backspace => backspace\n\
 spacebar => select\n\
-+ => volume up\n\
-- => volume down\n");
-    
-    std::string nmapOutput { getOutputFromShellCommand() };
+= => volume up\n\
+- => volume down\n\
+Ctrl+l => toggle literal input\n");
 
-    Roku_query roku;
-    Denon_control denon;
+    IPs ips;
+
+    Roku_query roku(ips.getRoku());
+    Denon_control denon(ips.getDenon());
+    LiteralMode literalmode;
 
     char ch;
     while ((ch = getch()) != 'q') {
-	handle_keypress(ch, roku, denon);
+	try{
+	    handle_keypress(literalmode, ch, roku, denon);
+	} catch (std::runtime_error e) {
+	    if (std::string(e.what()).find("Couldn't connect") != std::string::npos) {
+		flash_string("Resetting IPs...");
+		ips.setIPs();
+	    }
+	}
     }
 
     // Cleanup and close ncurses

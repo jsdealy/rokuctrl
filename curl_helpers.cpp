@@ -1,6 +1,6 @@
-module;
 /* This is an ncurses program for controlling a roku device and a denon avr 
  * using the command line <= 09/18/23 19:32:38 */ 
+#include "curl_helpers.h"
 #include <cstring>
 #include <algorithm>
 #include <cstdlib>
@@ -20,18 +20,14 @@ module;
 #include <array>
 #include <regex>
 
-export module curl_helpers;
 
-export enum class HTTP_MODE { GET, POST };
-
-
-export template <typename T>
+template <typename T>
 bool inVec(std::vector<T>& vec, T&& target) {
     for (T& x : vec) if (x == target) return true;
     return false;
 }
 
-export std::string getOutputFromShellCommand(const char* cmd) {
+std::string getOutputFromShellCommand(const char* cmd) {
     std::array<char, 128> buffer;
     std::string result;
     std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd, "r"), pclose);
@@ -44,11 +40,11 @@ export std::string getOutputFromShellCommand(const char* cmd) {
     return result;
 }
 
-export void flash_string(std::string s) {
+void flash_string(std::string s) {
     printw("%s", s.c_str());
     refresh();
     napms(1500);
-    move(17,0);
+    move(18,0);
     clrtobot();
     refresh();
 }
@@ -64,12 +60,12 @@ size_t write__callback(void* contents, size_t size, size_t nmemb, void* userdata
     return realSize;
 }
 
-export void curl_execute(CURL *curl, 
+void curl_execute(CURL *curl, 
 		  std::string& readBuffer,
 		  std::string& URL,
-		  HTTP_MODE mode = HTTP_MODE::GET,
-		  std::string post_command = "", 
-		  size_t (*write_callback)(void* contents, size_t size, size_t nmemb, void* userdata) = write__callback) {
+		  HTTP_MODE mode,
+		  std::string post_command, 
+		  size_t (*write_callback)(void* contents, size_t size, size_t nmemb, void* userdata)) {
 
     curl_easy_setopt(curl, CURLOPT_URL, URL.c_str());
 
@@ -110,7 +106,7 @@ export void curl_execute(CURL *curl,
 }
 
 
-export bool testForRoku(CURL *curl, std::string ip) {
+bool testForRoku(CURL *curl, std::string ip) {
     std::string buffer = "";
     try {
 	curl_execute(curl, buffer, std::string("http://").append(ip.append(":8060/query/media-player")));
@@ -123,7 +119,7 @@ export bool testForRoku(CURL *curl, std::string ip) {
     return false;
 }
 
-export bool testForDenon(CURL *curl, std::string ip) {
+bool testForDenon(CURL *curl, std::string ip) {
     std::string buffer = "";
     try {
 	curl_execute(curl, buffer, std::string("http://").append(ip.append("/MainZone/index.html")));
@@ -136,46 +132,22 @@ export bool testForDenon(CURL *curl, std::string ip) {
     return false;
 }
 
-export struct IPs {
-    IPs() { setIPs(); };
 
-    struct Found {
-	Found() { roku = false; denon = false; }
-	bool roku;
-	bool denon;
-	operator bool() { return roku && denon; }
-    };
-
-    void setIPs() {
-	std::string pingOutput { getOutputFromShellCommand("timeout 7 ping -b 192.168.1.255") };
-	pingOutput.append(getOutputFromShellCommand("nmap -sP 192.168.1.0/24"));
-	std::regex re { R"(192\.168\.1\.[\d]{1,3})" };
-	std::vector<std::string> ips;
-	/* this works since regex_search returns true each time it finds a hit <= 09/25/23 23:44:40 */ 
-	for (std::smatch sm; std::regex_search(pingOutput, sm, re);) {
-	    if (!inVec(ips, std::string(sm[0]))) ips.push_back(sm[0]);
-	    pingOutput = sm.suffix();
-	}
-	std::unique_ptr<CURL, decltype(&curl_easy_cleanup)> curl(curl_easy_init(), curl_easy_cleanup);
-	for (int i = 0; !found && i < ips.size(); i++) {
-	    if (!found.roku && testForRoku(curl.get(), ips.at(i))) { roku = ips.at(i); found.roku = true; }
-	    else if (!found.denon && testForDenon(curl.get(), ips.at(i))) { denon = ips.at(i); found.denon = true; }
-	}
+void IPs::setIPs() {
+    std::string pingOutput { getOutputFromShellCommand("timeout 7 ping -b 192.168.1.255 2> /dev/null") };
+    pingOutput.append(getOutputFromShellCommand("nmap -sP 192.168.1.0/24 2> /dev/null"));
+    std::regex re { R"(192\.168\.1\.[\d]{1,3})" };
+    std::vector<std::string> ips;
+    /* this works since regex_search returns true each time it finds a hit <= 09/25/23 23:44:40 */ 
+    for (std::smatch sm; std::regex_search(pingOutput, sm, re);) {
+	if (!inVec(ips, std::string(sm[0]))) ips.push_back(sm[0]);
+	pingOutput = sm.suffix();
     }
-
-    std::string getRoku() {
-	return roku;
-    };
-
-    std::string getDenon() {
-	return denon;
-    };
-
-private: 
-    std::string denon;
-    std::string roku;
-    Found found;
-};
-
-int main(void) {
+    std::unique_ptr<CURL, decltype(&curl_easy_cleanup)> curl(curl_easy_init(), curl_easy_cleanup);
+    for (int i = 0; !found && i < ips.size(); i++) {
+	if (!found.roku && testForRoku(curl.get(), ips.at(i))) { roku = ips.at(i); found.roku = true; }
+	else if (!found.denon && testForDenon(curl.get(), ips.at(i))) { denon = ips.at(i); found.denon = true; }
+    }
+    if (!found.roku) throw std::runtime_error("Couldn't find the Roku.");
+    if (!found.denon) throw std::runtime_error("Couldn't find the AVR.");
 }
