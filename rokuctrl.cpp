@@ -9,7 +9,6 @@
 #include <curl/curl.h>
 #include <curl/easy.h>
 #include <ncurses.h>
-#include <boost/regex.hpp>
 #include <cstdio>
 #include <cstring>
 #include <sstream>
@@ -19,8 +18,6 @@
 #include <array>
 #include <regex>
 #include "./curl_helpers.h"
-
-
 
 struct Denon_control {
     Denon_control(std::string ip_input) {

@@ -10,7 +10,6 @@
 #include <curl/curl.h>
 #include <curl/easy.h>
 #include <ncurses.h>
-#include <boost/regex.hpp>
 #include <cstdio>
 #include <cstring>
 #include <sstream>
@@ -99,9 +98,9 @@ void curl_execute(CURL *curl,
 	throw std::runtime_error(curl_easy_strerror(res));
     } 
 
-    boost::regex re { R"([^\s])" };
+    std::regex re { R"([^\s])" };
 
-    if (boost::regex_search(readBuffer, re)) 
+    if (std::regex_search(readBuffer, re)) 
 	flash_string(readBuffer);
 }
 
