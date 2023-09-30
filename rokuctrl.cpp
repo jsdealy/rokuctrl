@@ -2,11 +2,25 @@
  * using the command line <= 09/18/23 19:32:38 */ 
 #include <cstring>
 #include <cstdlib>
+#include <csignal>
+#include <unistd.h>
 #include <iostream>
 #include <curl/curl.h>
 #include <curl/easy.h>
 #include <ncurses.h>
+#include <boost/regex.hpp>
+#include <cstdio>
+#include <cstring>
+#include <sstream>
+#include <memory>
+#include <stdexcept>
+#include <string>
+#include <array>
 #include <regex>
+
+import curl_helpers;
+
+enum class HTTP_MODE { GET, POST };
 
 void flash_string(std::string s) {
     printw("%s", s.c_str());
@@ -18,7 +32,21 @@ void flash_string(std::string s) {
 }
 
 
-size_t write_callback(void* contents, size_t size, size_t nmemb, void* userdata) {
+std::string getOutputFromShellCommand(const char* cmd) {
+    std::array<char, 128> buffer;
+    std::string result;
+    std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd, "r"), pclose);
+    if (!pipe) {
+        throw std::runtime_error("popen() failed!");
+    }
+    while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
+        result += buffer.data();
+    }
+    return result;
+}
+
+
+size_t write__callback(void* contents, size_t size, size_t nmemb, void* userdata) {
     // Compute the real size of the incoming buffer
     size_t realSize = size * nmemb;
 
@@ -29,19 +57,22 @@ size_t write_callback(void* contents, size_t size, size_t nmemb, void* userdata)
     return realSize;
 }
 
-void curl_execute(CURL *curl,
+void curl_execute(CURL *curl, 
 		  std::string& readBuffer,
 		  std::string& URL,
-		  size_t (*write_callback)(void* contents, size_t size, size_t nmemb, void* userdata),
-		  std::string post_command = "") {
+		  HTTP_MODE mode = HTTP_MODE::GET,
+		  std::string post_command = "", 
+		  size_t (*write_callback)(void* contents, size_t size, size_t nmemb, void* userdata) = write__callback) {
 
     curl_easy_setopt(curl, CURLOPT_URL, URL.c_str());
 
-    /* this ensures we send a post request <= 09/18/23 18:39:06 */ 
-    curl_easy_setopt(curl, CURLOPT_POST, 1L);
+    if (mode == HTTP_MODE::POST) {
+	/* this ensures we send a post request <= 09/18/23 18:39:06 */ 
+	curl_easy_setopt(curl, CURLOPT_POST, 1L);
 
-    /* this is what sets the posted data <= 09/18/23 18:39:16 */ 
-    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post_command.c_str());
+	/* this is what sets the posted data <= 09/18/23 18:39:16 */ 
+	curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post_command.c_str());
+    }     
 
     // Send all returned data to this function
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
@@ -65,9 +96,9 @@ void curl_execute(CURL *curl,
 	throw std::runtime_error("curl performance error");
     } 
 
-    std::regex re { R"([^\s])" };
+    boost::regex re { R"([^\s])" };
 
-    if (std::regex_match(readBuffer, re)) 
+    if (boost::regex_match(readBuffer, re)) 
 	flash_string(readBuffer);
 
 }
@@ -116,12 +147,12 @@ private:
 
 	    std::string post_command = command.append(commandbody);
 
-	    curl_execute(curl, readBuffer, URL, write_callback, post_command);
+	    curl_execute(curl, readBuffer, URL, HTTP_MODE::POST, post_command);
 
 	    curl_free(commandbody);
 
 	} else throw std::runtime_error("failed to allocate uri string");
-	
+
     }
 };
 
@@ -145,7 +176,7 @@ struct Roku_query {
 	
 	URL = URL.append(command).c_str();
 
-	curl_execute(curl, readBuffer, URL, write_callback);
+	curl_execute(curl, readBuffer, URL);
 
     }
 
@@ -184,6 +215,42 @@ void handle_keypress(char key, Roku_query& roku, Denon_control& denon) {
     }
 }
 
+template <typename T>
+bool inVec(std::vector<T>& vec, T&& target) {
+    for (T& x : vec) if (x == target) return true;
+    return false;
+}
+
+bool testForRoku(CURL *curl, std::string ip) {
+    std::string buffer;
+    curl_execute(curl, buffer, ip);
+    
+    return false;
+}
+
+bool testForDenon(std::string s) {
+    return false;
+}
+
+struct IPs {
+    IPs() { setIPs(); };
+    void setIPs() {
+	std::string pingOutput { getOutputFromShellCommand("timeout 7 ping -b 192.168.1.255") };
+	std::regex re { R"(192\.168\.1\.[\d]{1,3})" };
+	std::vector<std::string> ips;
+	/* this works since regex_search returns true each time it finds a hit <= 09/25/23 23:44:40 */ 
+	for (std::smatch sm; std::regex_search(pingOutput, sm, re);) {
+	    if (!inVec(ips, std::string(sm[0]))) ips.push_back(sm[0]);
+	    pingOutput = sm.suffix();
+	}
+	std::unique_ptr<CURL, decltype(&curl_easy_cleanup)> curl(curl_easy_init(), curl_easy_cleanup);
+    }
+private: 
+    std::string denon;
+    std::string roku;
+};
+
+
 int main() {
     // Initialize ncurses
     initscr();
@@ -208,6 +275,8 @@ backspace => backspace\n\
 spacebar => select\n\
 + => volume up\n\
 - => volume down\n");
+    
+    std::string nmapOutput { getOutputFromShellCommand() };
 
     Roku_query roku;
     Denon_control denon;
