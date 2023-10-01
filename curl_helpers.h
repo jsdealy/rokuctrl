@@ -5,8 +5,12 @@
 
 enum class HTTP_MODE { GET, POST };
 
+enum class DEBUGMODE { OFF, ON };
+
 template <typename T>
 bool inVec(std::vector<T>& vec, T&& target);
+
+std::string url_encode(const std::string value); 
 
 std::string getOutputFromShellCommand(const char* cmd); 
 

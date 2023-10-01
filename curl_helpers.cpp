@@ -19,6 +19,7 @@
 #include <array>
 #include <regex>
 
+DEBUGMODE debugmode = DEBUGMODE::OFF;
 
 template <typename T>
 bool inVec(std::vector<T>& vec, T&& target) {
@@ -52,8 +53,13 @@ size_t write__callback(void* contents, size_t size, size_t nmemb, void* userdata
     // Compute the real size of the incoming buffer
     size_t realSize = size * nmemb;
 
-    // Convert the buffer to a string and append it to the output string
+    // Convert the buffer pointer to a string pointer 
     std::string* outStr = (std::string*)userdata;
+    /* note: you can't clear out the outStr before appending, 
+     * since this callback will be called multiple times (potentially)
+     * for a given http request; just have to be sure to send 
+     * in a clean buffer with each call to curl_execute
+     * <= 09/30/23 15:56:01 */ 
     outStr->append((char*)contents, realSize);
 
     return realSize;
@@ -100,7 +106,7 @@ void curl_execute(CURL *curl,
 
     std::regex re { R"([^\s])" };
 
-    if (std::regex_search(readBuffer, re)) 
+    if (debugmode == DEBUGMODE::ON && std::regex_search(readBuffer, re)) 
 	flash_string(readBuffer);
 }
 
