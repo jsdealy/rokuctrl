@@ -63,8 +63,13 @@ private:
 	std::string URL = std::format("http://{}{}", ip, tailURL);
 
 	std::string command { "cmd0=" };
+	
+	if (debugmode == DEBUGMODE::ON) { printw("URL: %s", URL.c_str()); }
 
 	std::string post_command = command.append(commandbody);
+
+	if (debugmode == DEBUGMODE::ON) { printw("POST: %s", post_command.c_str()); }
+
 	curl_execute(curl, readBuffer, URL, HTTP_MODE::POST, post_command);
     }
 
@@ -117,7 +122,9 @@ struct Roku_query {
 
 	std::string URL = std::format("http://{}:8060/keypress/", ip); 
 	
-	URL = URL.append(command).c_str();
+	URL = URL.append(command);
+
+	if (debugmode == DEBUGMODE::ON) { printw("%s", URL.c_str()); }
 
 	curl_execute(curl, readBuffer, URL, HTTP_MODE::POST);
 
