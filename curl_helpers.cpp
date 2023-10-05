@@ -90,7 +90,7 @@ void curl_execute(CURL *curl,
 
     curl_easy_setopt(curl, CURLOPT_TIMEOUT, 3L);  // timeout after 3 seconds
 
-    curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 5L);  // connection timeout after 5 seconds
+    curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 10L);  // connection timeout after 5 seconds
 
     /* TURN THIS ON FOR DEBUGGING <= 09/18/23 13:25:46 */ 
     /* curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L); */

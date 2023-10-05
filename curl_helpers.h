@@ -1,5 +1,8 @@
 #pragma once
 #include <curl/curl.h>
+#include <iostream>
+#include <regex>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -31,7 +34,18 @@ bool testForRoku(CURL *curl, std::string ip);
 bool testForDenon(CURL *curl, std::string ip); 
 
 struct IPs {
-    IPs() { setIPs(); };
+    IPs() { 
+	try {
+	    setIPs();
+	} catch (std::runtime_error e) {
+	    std::regex re { R"(timeout)", std::regex_constants::icase };
+	    if (std::regex_search(std::string(e.what()), re)) {
+		std::cout << "Timeout reached..." << '\n';
+		std::cout << "Trying again..." << '\n';
+		setIPs();
+	    }
+	}
+    };
 
     struct Found {
 	Found() { roku = false; denon = false; }
