@@ -41,9 +41,9 @@ std::string getOutputFromShellCommand(const char* cmd) {
 }
 
 void flash_string(std::string s) {
-    printw("%s", s.c_str());
+    printw("%s\n", s.c_str());
     refresh();
-    napms(8000);
+    napms(1500);
     move(18,0);
     clrtobot();
     refresh();
@@ -107,7 +107,7 @@ void curl_execute(CURL *curl,
     std::regex re { R"([^\s])" };
 
     if (debugmode == DEBUGMODE::ON && std::regex_search(readBuffer, re)) 
-	flash_string(readBuffer);
+	printw("%s\n", readBuffer.c_str());
 }
 
 
@@ -155,22 +155,22 @@ void IPs::setIPs() {
 	    try {
 		found.roku = testForRoku(curl.get(), ips.at(i));
 	    } catch (std::runtime_error e) {
-		printw("Roku Test Error: %s", e.what());
+		printw("Roku Test Error: %s\n", e.what());
 	    }  
 	    if (found.roku) { 
 		roku = ips.at(i); 
-		if (debugmode == DEBUGMODE::ON) { printw("%s", roku.c_str()); }
+		if (debugmode == DEBUGMODE::ON) { printw("%s\n", roku.c_str()); }
 	    }
 	} 
 	if (!found.denon) {
 	    try {
 		found.denon = testForDenon(curl.get(), ips.at(i));
 	    } catch (std::runtime_error e) {
-		printw("Denon Test Error: %s", e.what());
+		printw("Denon Test Error: %s\n", e.what());
 	    }  
 	    if (found.denon) { 
 		denon = ips.at(i); 
-		if (debugmode == DEBUGMODE::ON) { printw("%s", denon.c_str()); }
+		if (debugmode == DEBUGMODE::ON) { printw("%s\n", denon.c_str()); }
 	    }
 	} 
     }

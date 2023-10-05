@@ -83,7 +83,7 @@ private:
 	else if (com == CMD::VOLDOWN) { commandbody = url_encode("PutMasterVolumeBtn/<"); }
 	else if (com == CMD::POWER) { 
 	    commandbody = powerstate() ? url_encode("PutZone_OnOff/OFF") : url_encode("PutZone_OnOff/ON");
-	    if (debugmode == DEBUGMODE::ON) { flash_string(commandbody); };
+	    if (debugmode == DEBUGMODE::ON) { printw("%s\n", commandbody.c_str()); };
 	} else throw std::runtime_error("passed a bad arg to denon cmd method");
 
 	denonPost(commandbody);
@@ -97,10 +97,10 @@ private:
 	std::string URL = std::format("http://{}{}", ip, tailURL);
 	curl_execute(curl, buff, URL);
 	if (buff.find("<Power><value>ON</value></Power>") != std::string::npos) {
-	    if (debugmode == DEBUGMODE::ON) { flash_string("returning true"); };
+	    if (debugmode == DEBUGMODE::ON) { printw("%s\n", "returning true"); };
 	    return true;
 	} else {
-	    if (debugmode == DEBUGMODE::ON) { flash_string("returning false"); };
+	    if (debugmode == DEBUGMODE::ON) { printw("%s\n", "returning false"); };
 	    return false;
 	} 
     }
