@@ -27,6 +27,7 @@ extern DEBUGMODE debugmode;
 struct Denon_control {
     Denon_control(std::string ip_input) {
 	ip = ip_input;
+	if (ip.empty()) throw std::runtime_error("No denon IP.");
 	curl = curl_easy_init();
 	if (!curl) { throw std::runtime_error("curl initialization failed"); }
     }
@@ -109,6 +110,7 @@ private:
 struct Roku_query {
     Roku_query(std::string ip_input) {
 	ip = ip_input;
+	if (ip.empty()) throw std::runtime_error("No Roku IP.");
 	curl = curl_easy_init();
 	if (!curl) { throw std::runtime_error("curl initialization failed"); }
 	readBuffer = "";

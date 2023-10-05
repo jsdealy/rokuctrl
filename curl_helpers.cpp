@@ -153,21 +153,25 @@ void IPs::setIPs() {
 	bool success = false;
 	if (!found.roku) {
 	    try {
-		testForRoku(curl.get(), ips.at(i));
+		found.roku = testForRoku(curl.get(), ips.at(i));
 	    } catch (std::runtime_error e) {
 		printw("Roku Test Error: %s", e.what());
-		success = false;
 	    }  
-	    if (success) { roku = ips.at(i); found.roku = true; }
+	    if (found.roku) { 
+		roku = ips.at(i); 
+		if (debugmode == DEBUGMODE::ON) { printw("%s", roku.c_str()); }
+	    }
 	} 
-	else if (!found.denon) {
+	if (!found.denon) {
 	    try {
-		testForDenon(curl.get(), ips.at(i));
+		found.denon = testForDenon(curl.get(), ips.at(i));
 	    } catch (std::runtime_error e) {
 		printw("Denon Test Error: %s", e.what());
-		success = false;
 	    }  
-	    if (success) { denon = ips.at(i); found.denon = true; }
+	    if (found.denon) { 
+		denon = ips.at(i); 
+		if (debugmode == DEBUGMODE::ON) { printw("%s", denon.c_str()); }
+	    }
 	} 
     }
     if (!found.roku) throw std::runtime_error("Couldn't find the Roku.");
