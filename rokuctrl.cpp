@@ -201,6 +201,7 @@ void handle_keypress(LiteralMode& literalmode, char key, Roku_query& roku, Denon
 	    if (literalmode) flash_string("literal mode"); else flash_string("default mode");
 	    break;
 	}
+
 	case '=': literalmode.handle(roku, "=", LiteralMode::KeyType::DENONCOMMAND, [&]() { denon.volumeUp(); }); break;
 	case '1': literalmode.handle(roku, "=", LiteralMode::KeyType::DENONCOMMAND, [&]() { denon.switchTo("MPLAY"); }); break;
 	case '2': literalmode.handle(roku, "=", LiteralMode::KeyType::DENONCOMMAND, [&]() { denon.switchTo("DVD"); }); break;
@@ -211,6 +212,8 @@ void handle_keypress(LiteralMode& literalmode, char key, Roku_query& roku, Denon
 	case '7': literalmode.handle(roku, "=", LiteralMode::KeyType::DENONCOMMAND, [&]() { denon.switchTo("TUNER"); }); break;
 	case '-': literalmode.handle(roku, "=", LiteralMode::KeyType::DENONCOMMAND, [&]() { denon.volumeDown(); }); break;
 	case 'a': literalmode.handle(roku, "a", LiteralMode::KeyType::ROKUCOMMAND, "play"); break;
+	case '*': literalmode.handle(roku, "*", LiteralMode::KeyType::ROKUCOMMAND, "search"); break;
+	case 'P': literalmode.handle(roku, "P", LiteralMode::KeyType::ROKUCOMMAND, "poweroff"); break;
 	case 's': literalmode.handle(roku, "s", LiteralMode::KeyType::ROKUCOMMAND, "pause"); break;
 	case 'h': literalmode.handle(roku, "h", LiteralMode::KeyType::ROKUCOMMAND, "left"); break;
 	case 'l': literalmode.handle(roku, "l", LiteralMode::KeyType::ROKUCOMMAND, "right"); break;
@@ -256,6 +259,7 @@ i => info\n\
 enter => enter\n\
 backspace => backspace\n\
 spacebar => select\n\
+* => search\n\
 = => volume up\n\
 - => volume down\n\
 Ctrl+l => toggle literal input\n");
