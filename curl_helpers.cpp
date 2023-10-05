@@ -150,8 +150,25 @@ void IPs::setIPs() {
     }
     std::unique_ptr<CURL, decltype(&curl_easy_cleanup)> curl(curl_easy_init(), curl_easy_cleanup);
     for (int i = 0; !found && i < ips.size(); i++) {
-	if (!found.roku && testForRoku(curl.get(), ips.at(i))) { roku = ips.at(i); found.roku = true; }
-	else if (!found.denon && testForDenon(curl.get(), ips.at(i))) { denon = ips.at(i); found.denon = true; }
+	bool success = false;
+	if (!found.roku) {
+	    try {
+		testForRoku(curl.get(), ips.at(i));
+	    } catch (std::runtime_error e) {
+		printw("Roku Test Error: %s", e.what());
+		success = false;
+	    }  
+	    if (success) { roku = ips.at(i); found.roku = true; }
+	} 
+	else if (!found.denon) {
+	    try {
+		testForDenon(curl.get(), ips.at(i));
+	    } catch (std::runtime_error e) {
+		printw("Denon Test Error: %s", e.what());
+		success = false;
+	    }  
+	    if (success) { denon = ips.at(i); found.denon = true; }
+	} 
     }
     if (!found.roku) throw std::runtime_error("Couldn't find the Roku.");
     if (!found.denon) throw std::runtime_error("Couldn't find the AVR.");

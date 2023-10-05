@@ -1,5 +1,6 @@
 #pragma once
 #include <curl/curl.h>
+#include <curses.h>
 #include <iostream>
 #include <regex>
 #include <stdexcept>
@@ -40,8 +41,8 @@ struct IPs {
 	} catch (std::runtime_error e) {
 	    std::regex re { R"(timeout)", std::regex_constants::icase };
 	    if (std::regex_search(std::string(e.what()), re)) {
-		std::cout << "Timeout reached..." << '\n';
-		std::cout << "Trying again..." << '\n';
+		printw("%s", "Timeout reached...");
+		printw("%s", "Trying again...");
 		setIPs();
 	    }
 	}
