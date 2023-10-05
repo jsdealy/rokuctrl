@@ -201,7 +201,6 @@ void handle_keypress(LiteralMode& literalmode, char key, Roku_query& roku, Denon
 	    if (literalmode) flash_string("literal mode"); else flash_string("default mode");
 	    break;
 	}
-
 	case '=': literalmode.handle(roku, "=", LiteralMode::KeyType::DENONCOMMAND, [&]() { denon.volumeUp(); }); break;
 	case '1': literalmode.handle(roku, "=", LiteralMode::KeyType::DENONCOMMAND, [&]() { denon.switchTo("MPLAY"); }); break;
 	case '2': literalmode.handle(roku, "=", LiteralMode::KeyType::DENONCOMMAND, [&]() { denon.switchTo("DVD"); }); break;
