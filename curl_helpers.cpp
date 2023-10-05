@@ -43,7 +43,7 @@ std::string getOutputFromShellCommand(const char* cmd) {
 void flash_string(std::string s) {
     printw("%s", s.c_str());
     refresh();
-    napms(1500);
+    napms(8000);
     move(18,0);
     clrtobot();
     refresh();
