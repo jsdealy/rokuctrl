@@ -202,7 +202,7 @@ struct LiteralMode {
 
 };
 
-void handle_keypress(LiteralMode& literalmode, char key, Roku_query& roku, Denon_control& denon) {
+void handle_keypress(LiteralMode& literalmode, char key, Roku_query& roku, Denon_control& denon, IPs& ips) {
 
     switch (key) {
 	case '': {
@@ -210,6 +210,7 @@ void handle_keypress(LiteralMode& literalmode, char key, Roku_query& roku, Denon
 	    if (literalmode) flash_string("literal mode"); else flash_string("default mode");
 	    break;
 	}
+	case '\\': ips.setIPs();
 	case '=': literalmode.handle(roku, "=", LiteralMode::KeyType::DENONCOMMAND, [&]() { denon.volumeUp(); }); break;
 	case '1': literalmode.handle(roku, "=", LiteralMode::KeyType::DENONCOMMAND, [&]() { denon.switchTo("MPLAY"); }); break;
 	case '2': literalmode.handle(roku, "=", LiteralMode::KeyType::DENONCOMMAND, [&]() { denon.switchTo("DVD"); }); break;
@@ -270,7 +271,8 @@ spacebar => select\n\
 * => search\n\
 = => volume up\n\
 - => volume down\n\
-Ctrl+l => toggle literal input\n");
+Ctrl+l => toggle literal input\n\
+\\ => reset ips");
 
 
     IPs ips;
@@ -282,7 +284,7 @@ Ctrl+l => toggle literal input\n");
     char ch;
     while ((ch = getch()) != 'q') {
 	try{
-	    handle_keypress(literalmode, ch, roku, denon);
+	    handle_keypress(literalmode, ch, roku, denon, ips);
 	} catch (std::runtime_error e) {
 	    if (std::string(e.what()).find("Couldn't connect") != std::string::npos) {
 		flash_string("Resetting IPs...");
