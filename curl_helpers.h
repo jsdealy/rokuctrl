@@ -18,7 +18,7 @@ std::string url_encode(const std::string value);
 
 std::string getOutputFromShellCommand(const char* cmd); 
 
-void flash_string(std::string s); 
+void flash_string(std::string s, int milliseconds = 1500); 
 
 size_t write__callback(void* contents, size_t size, size_t nmemb, void* userdata); 
 

@@ -40,11 +40,11 @@ std::string getOutputFromShellCommand(const char* cmd) {
     return result;
 }
 
-void flash_string(std::string s) {
+void flash_string(std::string s, int milliseconds) {
     printw("%s\n", s.c_str());
     refresh();
-    napms(1500);
-    move(18,0);
+    napms(milliseconds);
+    move(19,0);
     clrtobot();
     refresh();
 }
@@ -139,8 +139,10 @@ bool testForDenon(CURL *curl, std::string ip) {
 
 
 void IPs::setIPs() {
+    flash_string("getting ips...", 500);
     std::string pingOutput { getOutputFromShellCommand("timeout 7 ping -b 192.168.1.255 2> /dev/null") };
     pingOutput.append(getOutputFromShellCommand("nmap -sP 192.168.1.0/24 2> /dev/null"));
+    flash_string("regexing...", 500);
     std::regex re { R"(192\.168\.1\.[\d]{1,3})" };
     std::vector<std::string> ips;
     /* this works since regex_search returns true each time it finds a hit <= 09/25/23 23:44:40 */ 
@@ -148,6 +150,7 @@ void IPs::setIPs() {
 	if (!inVec(ips, std::string(sm[0]))) ips.push_back(sm[0]);
 	pingOutput = sm.suffix();
     }
+    flash_string("testing ips for roku & denon responses...", 500);
     std::unique_ptr<CURL, decltype(&curl_easy_cleanup)> curl(curl_easy_init(), curl_easy_cleanup);
     for (int i = 0; !found && i < ips.size(); i++) {
 	bool success = false;
@@ -174,6 +177,7 @@ void IPs::setIPs() {
 	    }
 	} 
     }
+    flash_string("done testing.", 500);
     if (!found.roku) throw std::runtime_error("Couldn't find the Roku.");
     if (!found.denon) throw std::runtime_error("Couldn't find the AVR.");
 }
