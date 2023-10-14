@@ -44,7 +44,7 @@ void flash_string(std::string s, int milliseconds) {
     printw("%s\n", s.c_str());
     refresh();
     napms(milliseconds);
-    move(19,0);
+    move(20,0);
     clrtobot();
     refresh();
 }
