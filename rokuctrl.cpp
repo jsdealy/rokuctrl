@@ -272,7 +272,7 @@ spacebar => select\n\
 = => volume up\n\
 - => volume down\n\
 Ctrl+l => toggle literal input\n\
-\\ => reset ips");
+\\ => reset ips\n");
 
 
     IPs ips;
