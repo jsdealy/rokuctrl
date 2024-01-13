@@ -6,6 +6,7 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include "./display.h"
 
 enum class HTTP_MODE { GET, POST };
 
@@ -17,8 +18,6 @@ bool inVec(std::vector<T>& vec, T&& target);
 std::string url_encode(const std::string value); 
 
 std::string getOutputFromShellCommand(const char* cmd); 
-
-void flash_string(std::string s, int milliseconds = 1500); 
 
 size_t write__callback(void* contents, size_t size, size_t nmemb, void* userdata); 
 
@@ -35,15 +34,15 @@ bool testForRoku(CURL *curl, std::string ip);
 bool testForDenon(CURL *curl, std::string ip); 
 
 struct IPs {
-    IPs() { 
+    IPs(Display& display) { 
 	try {
-	    setIPs();
+	    setIPs(display);
 	} catch (std::runtime_error e) {
 	    std::regex re { R"(timeout)", std::regex_constants::icase };
 	    if (std::regex_search(std::string(e.what()), re)) {
-		printw("%s", "Timeout reached...");
-		printw("%s", "Trying again...");
-		setIPs();
+		display.displayMessage("Timeout reached...");
+		display.displayMessage("Trying again...");
+		setIPs(display);
 	    }
 	}
     };
@@ -55,7 +54,7 @@ struct IPs {
 	operator bool() { return roku && denon; }
     };
 
-    void setIPs(); 
+    void setIPs(Display&); 
 
     std::string getRoku() {
 	return roku;

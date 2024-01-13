@@ -20,9 +20,9 @@
 #include <array>
 #include <regex>
 #include "./curl_helpers.h"
+#include "./display.h"
 
 extern DEBUGMODE debugmode;
-
 
 struct Denon_control {
     Denon_control(std::string ip_input) {
@@ -65,11 +65,11 @@ private:
 
 	std::string command { "cmd0=" };
 	
-	if (debugmode == DEBUGMODE::ON) { printw("URL: %s", URL.c_str()); }
+	/* if (debugmode == DEBUGMODE::ON) { printw("URL: %s", URL.c_str()); } */
 
 	std::string post_command = command.append(commandbody);
 
-	if (debugmode == DEBUGMODE::ON) { printw("POST: %s", post_command.c_str()); }
+	/* if (debugmode == DEBUGMODE::ON) { printw("POST: %s", post_command.c_str()); } */
 
 	curl_execute(curl, readBuffer, URL, HTTP_MODE::POST, post_command);
     }
@@ -171,12 +171,18 @@ struct LiteralMode {
     LiteralMode() { litmode = false; };
 
     enum class KeyType { ROKUCOMMAND, DENONCOMMAND, NONCOMMAND };
-    void toggle() { litmode = !litmode; };
+    void toggle(Display& display) { 
+	litmode = !litmode; 
+	/* if (litmode) display.displayMessage("literal mode"); */ 
+	/* else { display.clearMessages(); display.flashMessage("default mode", 250); } */
+    };
     operator bool() { return litmode; };
 
-    void handle(Roku_query& roku, const std::string literal, 
+    void handle(Roku_query& roku, 
+		const std::string literal, 
 		KeyType keytype, 
-		const std::variant<std::string, const std::function<void ()>>& command) {
+		const std::variant<std::string, const std::function<void ()>>& command,
+		Display& display) {
 	if (litmode) { 
 	    std::string litstring = "";
 	    if ((std::holds_alternative<std::string>(command) && std::get<std::string>(command) != "backspace")
@@ -185,14 +191,15 @@ struct LiteralMode {
 		litstring.append(url_encode(literal));
 	    } 
 	    roku.rokucommand(litstring.c_str()); 
-	} else { 
+	} 
+	else { 
 	    if (keytype == KeyType::ROKUCOMMAND) { roku.rokucommand(std::get<std::string>(command).c_str()); }
 	    else if (keytype == KeyType::DENONCOMMAND) { std::get<const std::function<void ()>>(command)(); }
 	    else {
 		const char *skeleton = "You pressed the '%c' key!\n"; 
 		char buf[std::strlen(skeleton)+1];
 		sprintf(buf, skeleton, literal[0]); 
-		flash_string(buf); 
+		display.flashMessage(buf); 
 	    }
 	}
     }
@@ -202,98 +209,99 @@ struct LiteralMode {
 
 };
 
-void handle_keypress(LiteralMode& literalmode, char key, Roku_query& roku, Denon_control& denon, IPs& ips) {
+void handle_keypress(LiteralMode& literalmode,
+		     char key,
+		     Roku_query& roku,
+		     Denon_control& denon,
+		     IPs& ips,
+		     Display& display) {
 
     switch (key) {
 	case '': {
-	    literalmode.toggle();
-	    if (literalmode) flash_string("literal mode"); else flash_string("default mode");
+	    literalmode.toggle(display);
 	    break;
 	}
-	case '\\': ips.setIPs();
-	case '=': literalmode.handle(roku, "=", LiteralMode::KeyType::DENONCOMMAND, [&]() { denon.volumeUp(); }); break;
-	case '1': literalmode.handle(roku, "=", LiteralMode::KeyType::DENONCOMMAND, [&]() { denon.switchTo("MPLAY"); }); break;
-	case '2': literalmode.handle(roku, "=", LiteralMode::KeyType::DENONCOMMAND, [&]() { denon.switchTo("DVD"); }); break;
-	case '3': literalmode.handle(roku, "=", LiteralMode::KeyType::DENONCOMMAND, [&]() { denon.switchTo("GAME"); }); break;
-	case '4': literalmode.handle(roku, "=", LiteralMode::KeyType::DENONCOMMAND, [&]() { denon.switchTo("BD"); }); break;
-	case '5': literalmode.handle(roku, "=", LiteralMode::KeyType::DENONCOMMAND, [&]() { denon.switchTo("AUX1"); }); break;
-	case '6': literalmode.handle(roku, "=", LiteralMode::KeyType::DENONCOMMAND, [&]() { denon.switchTo("SAT/CBL"); }); break;
-	case '7': literalmode.handle(roku, "=", LiteralMode::KeyType::DENONCOMMAND, [&]() { denon.switchTo("TUNER"); }); break;
-	case '-': literalmode.handle(roku, "=", LiteralMode::KeyType::DENONCOMMAND, [&]() { denon.volumeDown(); }); break;
-	case 'a': literalmode.handle(roku, "a", LiteralMode::KeyType::ROKUCOMMAND, "play"); break;
-	case '*': literalmode.handle(roku, "*", LiteralMode::KeyType::ROKUCOMMAND, "search"); break;
-	case 'P': literalmode.handle(roku, "P", LiteralMode::KeyType::ROKUCOMMAND, "poweroff"); break;
-	case 's': literalmode.handle(roku, "s", LiteralMode::KeyType::ROKUCOMMAND, "pause"); break;
-	case 'h': literalmode.handle(roku, "h", LiteralMode::KeyType::ROKUCOMMAND, "left"); break;
-	case 'l': literalmode.handle(roku, "l", LiteralMode::KeyType::ROKUCOMMAND, "right"); break;
-	case 'k': literalmode.handle(roku, "k", LiteralMode::KeyType::ROKUCOMMAND, "up"); break;
-	case 'j': literalmode.handle(roku, "j", LiteralMode::KeyType::ROKUCOMMAND, "down"); break;
-	case 'd': literalmode.handle(roku, "d", LiteralMode::KeyType::ROKUCOMMAND, "rev"); break;
-	case 'f': literalmode.handle(roku, "f", LiteralMode::KeyType::ROKUCOMMAND, "fwd"); break;
-	case 'g': literalmode.handle(roku, "g", LiteralMode::KeyType::ROKUCOMMAND, "home"); break;
-	case 'b': literalmode.handle(roku, "b", LiteralMode::KeyType::ROKUCOMMAND, "back"); break;
-	case 'r': literalmode.handle(roku, "r", LiteralMode::KeyType::ROKUCOMMAND, "instantreplay"); break;
-	case '\n': literalmode.handle(roku, "\n", LiteralMode::KeyType::ROKUCOMMAND, "enter"); break;
-	case '\x07': literalmode.handle(roku, "\b", LiteralMode::KeyType::ROKUCOMMAND, "backspace"); break;
-	case 'i': literalmode.handle(roku, "i", LiteralMode::KeyType::ROKUCOMMAND, "info"); break;
-	case 'p': literalmode.handle(roku, "=", LiteralMode::KeyType::DENONCOMMAND, [&]() { denon.power(); }); break;
-	case ' ': literalmode.handle(roku, " ", LiteralMode::KeyType::ROKUCOMMAND, "select"); break;
-	default: literalmode.handle(roku, std::format("{}", key), LiteralMode::KeyType::NONCOMMAND, std::format("{}", key));
+	case '\\': ips.setIPs(display);
+	case '=': literalmode.handle(roku, "=", LiteralMode::KeyType::DENONCOMMAND, [&]() { denon.volumeUp(); }, display); break;
+	case '1': literalmode.handle(roku, "1", LiteralMode::KeyType::DENONCOMMAND, [&]() { denon.switchTo("MPLAY"); }, display); break;
+	case '2': literalmode.handle(roku, "2", LiteralMode::KeyType::DENONCOMMAND, [&]() { denon.switchTo("DVD"); }, display); break;
+	case '3': literalmode.handle(roku, "3", LiteralMode::KeyType::DENONCOMMAND, [&]() { denon.switchTo("GAME"); }, display); break;
+	case '4': literalmode.handle(roku, "4", LiteralMode::KeyType::DENONCOMMAND, [&]() { denon.switchTo("BD"); }, display); break;
+	case '5': literalmode.handle(roku, "5", LiteralMode::KeyType::DENONCOMMAND, [&]() { denon.switchTo("AUX1"); }, display); break;
+	case '6': literalmode.handle(roku, "6", LiteralMode::KeyType::DENONCOMMAND, [&]() { denon.switchTo("SAT/CBL"); }, display); break;
+	case '7': literalmode.handle(roku, "7", LiteralMode::KeyType::DENONCOMMAND, [&]() { denon.switchTo("TUNER"); }, display); break;
+	case '-': literalmode.handle(roku, "-", LiteralMode::KeyType::DENONCOMMAND, [&]() { denon.volumeDown(); }, display); break;
+	case 'a': literalmode.handle(roku, "a", LiteralMode::KeyType::ROKUCOMMAND, "play", display); break;
+	case '*': literalmode.handle(roku, "*", LiteralMode::KeyType::ROKUCOMMAND, "search", display); break;
+	case 'P': literalmode.handle(roku, "P", LiteralMode::KeyType::ROKUCOMMAND, "poweroff", display); break;
+	case 's': literalmode.handle(roku, "s", LiteralMode::KeyType::ROKUCOMMAND, "pause", display); break;
+	case 'h': literalmode.handle(roku, "h", LiteralMode::KeyType::ROKUCOMMAND, "left", display); break;
+	case 'l': literalmode.handle(roku, "l", LiteralMode::KeyType::ROKUCOMMAND, "right", display); break;
+	case 'k': literalmode.handle(roku, "k", LiteralMode::KeyType::ROKUCOMMAND, "up", display); break;
+	case 'j': literalmode.handle(roku, "j", LiteralMode::KeyType::ROKUCOMMAND, "down", display); break;
+	case 'd': literalmode.handle(roku, "d", LiteralMode::KeyType::ROKUCOMMAND, "rev", display); break;
+	case 'f': literalmode.handle(roku, "f", LiteralMode::KeyType::ROKUCOMMAND, "fwd", display); break;
+	case 'g': literalmode.handle(roku, "g", LiteralMode::KeyType::ROKUCOMMAND, "home", display); break;
+	case 'b': literalmode.handle(roku, "b", LiteralMode::KeyType::ROKUCOMMAND, "back", display); break;
+	case 'r': literalmode.handle(roku, "r", LiteralMode::KeyType::ROKUCOMMAND, "instantreplay", display); break;
+	case '\n': literalmode.handle(roku, "\n", LiteralMode::KeyType::ROKUCOMMAND, "enter", display); break;
+	case '\x07': literalmode.handle(roku, "\b", LiteralMode::KeyType::ROKUCOMMAND, "backspace", display); break;
+	case 'i': literalmode.handle(roku, "i", LiteralMode::KeyType::ROKUCOMMAND, "info", display); break;
+	case 'p': literalmode.handle(roku, "p", LiteralMode::KeyType::DENONCOMMAND, [&]() { denon.power(); }, display); break;
+	case ' ': literalmode.handle(roku, " ", LiteralMode::KeyType::ROKUCOMMAND, "select", display); break;
+	default: literalmode.handle(roku, std::format("{}", key), LiteralMode::KeyType::NONCOMMAND, std::format("{}", key), display);
     }
 }
 
 
 
 int main(int argc, char **argv) {
-    // Initialize ncurses
-    initscr();
-    cbreak();      // Line buffering disabled, pass everything to me
-    noecho();      // Don't echo() while we do getch
-    keypad(stdscr, TRUE);  // Enable special keys
     if (argc > 1 && std::string(*(argv+1)) == "--debug") { printw("%s\n", *(argv+1)); debugmode = DEBUGMODE::ON; };
 
+    std::vector<std::string> staticDisplay {
+	"a => play",
+	"s => pause",
+	"d => rev",
+	"f => fwd",
+	"g => home",
+	"h => left",
+	"l => right",
+	"k => up",
+	"j => down",
+	"b => back",
+	"r => instantreplay",
+	"i => info",
+	"enter => enter",
+	"backspace => backspace",
+	"spacebar => select",
+	"* => search",
+	"= => volume up",
+	"- => volume down",
+	"Ctrl+l => toggle literal input",
+	"\\ => reset ips"
+    };
 
-    printw("%s", "a => play\n\
-s => pause\n\
-d => rev\n\
-f => fwd\n\
-g => home\n\
-h => left\n\
-l => right\n\
-k => up\n\
-j => down\n\
-b => back\n\
-r => instantreplay\n\
-i => info\n\
-enter => enter\n\
-backspace => backspace\n\
-spacebar => select\n\
-* => search\n\
-= => volume up\n\
-- => volume down\n\
-Ctrl+l => toggle literal input\n\
-\\ => reset ips\n");
+    Display display(staticDisplay);
 
-
-    IPs ips;
+    IPs ips(display);
 
     Roku_query roku(ips.getRoku());
     Denon_control denon(ips.getDenon());
+    display.displayMessage("Set up roku and denon control.");
+    display.clearMessages(3000);
     LiteralMode literalmode;
-
     char ch;
     while ((ch = getch()) != 'q') {
 	try{
-	    handle_keypress(literalmode, ch, roku, denon, ips);
+	    handle_keypress(literalmode, ch, roku, denon, ips, display);
 	} catch (std::runtime_error e) {
 	    if (std::string(e.what()).find("Couldn't connect") != std::string::npos) {
-		flash_string("Resetting IPs...");
-		ips.setIPs();
+		display.displayMessage("Resetting IPs...");
+		ips.setIPs(display);
 	    }
 	}
     }
 
     // Cleanup and close ncurses
-    endwin();
     return 0;
 }

@@ -40,14 +40,6 @@ std::string getOutputFromShellCommand(const char* cmd) {
     return result;
 }
 
-void flash_string(std::string s, int milliseconds) {
-    printw("%s\n", s.c_str());
-    refresh();
-    napms(milliseconds);
-    move(20,0);
-    clrtobot();
-    refresh();
-}
 
 size_t write__callback(void* contents, size_t size, size_t nmemb, void* userdata) {
     // Compute the real size of the incoming buffer
@@ -138,11 +130,11 @@ bool testForDenon(CURL *curl, std::string ip) {
 }
 
 
-void IPs::setIPs() {
-    flash_string("getting ips...", 500);
+void IPs::setIPs(Display& display) {
+    display.displayMessage("Getting ips...");
     std::string pingOutput { getOutputFromShellCommand("timeout 7 ping -b 192.168.1.255 2> /dev/null") };
     pingOutput.append(getOutputFromShellCommand("nmap -sP 192.168.1.0/24 2> /dev/null"));
-    flash_string("regexing...", 500);
+    display.displayMessage("Regexing...");
     std::regex re { R"(192\.168\.1\.[\d]{1,3})" };
     std::vector<std::string> ips;
     /* this works since regex_search returns true each time it finds a hit <= 09/25/23 23:44:40 */ 
@@ -150,7 +142,7 @@ void IPs::setIPs() {
 	if (!inVec(ips, std::string(sm[0]))) ips.push_back(sm[0]);
 	pingOutput = sm.suffix();
     }
-    flash_string("testing ips for roku & denon responses...", 500);
+    display.displayMessage("Testing ips for roku & denon responses...");
     std::unique_ptr<CURL, decltype(&curl_easy_cleanup)> curl(curl_easy_init(), curl_easy_cleanup);
     for (int i = 0; !found && i < ips.size(); i++) {
 	bool success = false;
@@ -158,26 +150,31 @@ void IPs::setIPs() {
 	    try {
 		found.roku = testForRoku(curl.get(), ips.at(i));
 	    } catch (std::runtime_error e) {
-		printw("Roku Test Error: %s\n", e.what());
+		display.displayMessage("Roku Test Error: ");
+		display.displayMessage(e.what());
 	    }  
 	    if (found.roku) { 
 		roku = ips.at(i); 
-		if (debugmode == DEBUGMODE::ON) { printw("%s\n", roku.c_str()); }
+		display.displayMessage("Roku found.");
+		/* if (debugmode == DEBUGMODE::ON) { printw("%s\n", roku.c_str()); } */
 	    }
 	} 
 	if (!found.denon) {
 	    try {
 		found.denon = testForDenon(curl.get(), ips.at(i));
 	    } catch (std::runtime_error e) {
-		printw("Denon Test Error: %s\n", e.what());
+		display.displayMessage("Denon Test Error: ");
+		display.displayMessage(e.what());
 	    }  
 	    if (found.denon) { 
 		denon = ips.at(i); 
-		if (debugmode == DEBUGMODE::ON) { printw("%s\n", denon.c_str()); }
+		display.displayMessage("Denon found.");
+		/* if (debugmode == DEBUGMODE::ON) { printw("%s\n", denon.c_str()); } */
 	    }
 	} 
     }
-    flash_string("done testing.", 500);
+    display.displayMessage("Done testing.");
+    /* display.clearMessages(3000); */
     if (!found.roku) throw std::runtime_error("Couldn't find the Roku.");
     if (!found.denon) throw std::runtime_error("Couldn't find the AVR.");
 }
