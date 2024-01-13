@@ -70,6 +70,7 @@ public:
 	napms(wait);
 	clrtobot();
 	refresh();
+	numberOfDisplayMessages = 0;
     }
 
 };
