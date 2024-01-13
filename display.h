@@ -26,7 +26,13 @@ public:
 
 	printw("%s\n", topBottomBorder.c_str());
 	for (std::string s : persistentLines) {
-	    printw("| %s |\n", s.c_str());
+	    std::string spacerAndBackBorder = "";
+	    for (auto i = 0; i < longestPersistentLine - s.length(); i++) {
+		spacerAndBackBorder.push_back(' ');
+	    }
+	    spacerAndBackBorder.push_back('|');
+	    printw("| %s", s.c_str());
+	    printw("%s", spacerAndBackBorder.c_str());
 	}
 	printw("%s\n", topBottomBorder.c_str());
 	refresh();
