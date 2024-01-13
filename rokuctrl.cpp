@@ -173,8 +173,8 @@ struct LiteralMode {
     enum class KeyType { ROKUCOMMAND, DENONCOMMAND, NONCOMMAND };
     void toggle(Display& display) { 
 	litmode = !litmode; 
-	/* if (litmode) display.displayMessage("literal mode"); */ 
-	/* else { display.clearMessages(); display.flashMessage("default mode", 250); } */
+	if (litmode) display.displayMessage("literal mode"); 
+	else { display.clearMessages(); display.flashMessage("default mode", 250); }
     };
     operator bool() { return litmode; };
 
