@@ -283,12 +283,14 @@ int main(int argc, char **argv) {
 
     Display display(staticDisplay);
 
+    /* note that the IPs constructor takes a reference to Display, as 
+    otherwise we'll initiate a new display (a copy) when we pass display <= 01/13/24 16:29:25 */ 
     IPs ips(display);
 
     Roku_query roku(ips.getRoku());
     Denon_control denon(ips.getDenon());
     display.displayMessage("Roku and denon control established.");
-    display.clearMessages(2000);
+    display.clearMessages(1500);
     LiteralMode literalmode;
     char ch;
     while ((ch = getch()) != 'q') {

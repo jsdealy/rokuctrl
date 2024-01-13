@@ -7,7 +7,7 @@ class Display {
     int numberOfPersistentLines;
     int numberOfDisplayMessages;
 public:
-    Display(std::vector<std::string> persistentLines): numberOfPersistentLines(2), numberOfDisplayMessages(0) {
+    Display(std::vector<std::string> persistentLines): numberOfPersistentLines(4), numberOfDisplayMessages(0) {
 	// Initialize ncurses
 	initscr();
 	cbreak();      // Line buffering disabled, pass everything to me
@@ -24,6 +24,7 @@ public:
 	}
 	topBottomBorder.append("-+");
 
+	printw("\n  %s\n", "ROKU & DENON CONTROLLER");
 	printw("%s\n", topBottomBorder.c_str());
 	for (std::string s : persistentLines) {
 	    std::string spacerAndBackBorder = "";
