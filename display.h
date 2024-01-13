@@ -30,7 +30,7 @@ public:
 	    for (auto i = 0; i < longestPersistentLine - s.length(); i++) {
 		spacerAndBackBorder.push_back(' ');
 	    }
-	    spacerAndBackBorder.push_back('|');
+	    spacerAndBackBorder.append("|\n");
 	    printw("| %s", s.c_str());
 	    printw("%s", spacerAndBackBorder.c_str());
 	}
