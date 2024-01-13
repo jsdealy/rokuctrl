@@ -46,7 +46,7 @@ public:
     }
 
     void flashMessage(std::string s, int milliseconds = 250) {
-	printw("%s\n", s.c_str());
+	printw(" %s\n", s.c_str());
 	refresh();
 	/* sleep for milliseconds <= 01/13/24 13:27:21 */ 
 	napms(milliseconds);
@@ -57,7 +57,7 @@ public:
 
     void displayMessage(std::string s) {
 	numberOfDisplayMessages++;
-	printw("%s\n", s.c_str());
+	printw(" %s\n", s.c_str());
 	refresh();
     }
 

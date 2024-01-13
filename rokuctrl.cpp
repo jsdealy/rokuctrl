@@ -287,8 +287,8 @@ int main(int argc, char **argv) {
 
     Roku_query roku(ips.getRoku());
     Denon_control denon(ips.getDenon());
-    display.displayMessage("Set up roku and denon control.");
-    display.clearMessages(3000);
+    display.displayMessage("Roku and denon control established.");
+    display.clearMessages(2000);
     LiteralMode literalmode;
     char ch;
     while ((ch = getch()) != 'q') {
