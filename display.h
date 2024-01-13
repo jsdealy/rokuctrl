@@ -13,12 +13,12 @@ public:
 	cbreak();      // Line buffering disabled, pass everything to me
 	noecho();      // Don't echo() while we do getch
 	keypad(stdscr, TRUE);  // Enable special keys
-	int longestPersistentLine = 2;
-	std::string topBottomBorder = "+-";
+	int longestPersistentLine = 0;
 	for (std::string s : persistentLines) {
 	    if (s.length() > longestPersistentLine) longestPersistentLine = s.length();
 	    numberOfPersistentLines++;
 	}
+	std::string topBottomBorder = " +-";
 	for (auto i = 0; i < longestPersistentLine; i++) {
 	    topBottomBorder.push_back('-');
 	}
@@ -31,7 +31,7 @@ public:
 		spacerAndBackBorder.push_back(' ');
 	    }
 	    spacerAndBackBorder.append(" |\n");
-	    printw("| %s", s.c_str());
+	    printw(" | %s", s.c_str());
 	    printw("%s", spacerAndBackBorder.c_str());
 	}
 	printw("%s\n", topBottomBorder.c_str());
