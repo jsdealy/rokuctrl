@@ -7,16 +7,28 @@ class Display {
     int numberOfPersistentLines;
     int numberOfDisplayMessages;
 public:
-    Display(std::vector<std::string> persistentLines): numberOfPersistentLines(0), numberOfDisplayMessages(0) {
+    Display(std::vector<std::string> persistentLines): numberOfPersistentLines(2), numberOfDisplayMessages(0) {
 	// Initialize ncurses
 	initscr();
 	cbreak();      // Line buffering disabled, pass everything to me
 	noecho();      // Don't echo() while we do getch
 	keypad(stdscr, TRUE);  // Enable special keys
+	int longestPersistentLine = 2;
+	std::string topBottomBorder = "+-";
 	for (std::string s : persistentLines) {
+	    if (s.length() > longestPersistentLine) longestPersistentLine = s.length();
 	    numberOfPersistentLines++;
-	    printw("%s\n", s.c_str());
 	}
+	for (auto i = 0; i < longestPersistentLine; i++) {
+	    topBottomBorder.push_back('-');
+	}
+	topBottomBorder.append("-+");
+
+	printw("%s\n", topBottomBorder.c_str());
+	for (std::string s : persistentLines) {
+	    printw("| %s |\n", s.c_str());
+	}
+	printw("%s\n", topBottomBorder.c_str());
 	refresh();
     }
 
