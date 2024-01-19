@@ -142,7 +142,7 @@ void IPs::setIPs(Display& display) {
 	if (!inVec(ips, std::string(sm[0]))) ips.push_back(sm[0]);
 	pingOutput = sm.suffix();
     }
-    display.displayMessage("Testing ips for roku & denon responses...");
+    display.displayMessage("Searching roku & denon ips...");
     std::unique_ptr<CURL, decltype(&curl_easy_cleanup)> curl(curl_easy_init(), curl_easy_cleanup);
     for (int i = 0; !found && i < ips.size(); i++) {
 	if (!found.roku) {
