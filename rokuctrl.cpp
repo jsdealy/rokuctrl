@@ -25,7 +25,7 @@
 extern DEBUGMODE debugmode;
 
 struct Denon_control {
-    Denon_control(std::string ip_input, Display display) {
+    Denon_control(std::string ip_input, Display& display) {
 	ip = ip_input;
 	if (ip.empty()) display.displayMessage("No Denon IP!");
 	curl = curl_easy_init();
@@ -112,7 +112,7 @@ private:
 
 
 struct Roku_query {
-    Roku_query(std::string ip_input, Display display) {
+    Roku_query(std::string ip_input, Display& display) {
 	ip = ip_input;
 	if (ip.empty()) display.displayMessage("No Roku IP!");
 	curl = curl_easy_init();
