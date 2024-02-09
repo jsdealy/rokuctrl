@@ -25,9 +25,9 @@
 extern DEBUGMODE debugmode;
 
 struct Denon_control {
-    Denon_control(std::string ip_input) {
+    Denon_control(std::string ip_input, Display display) {
 	ip = ip_input;
-	if (ip.empty()) throw std::runtime_error("No denon IP.");
+	if (ip.empty()) display.displayMessage("No Denon IP!");
 	curl = curl_easy_init();
 	if (!curl) { throw std::runtime_error("curl initialization failed"); }
     }
@@ -50,6 +50,10 @@ struct Denon_control {
 
     void switchTo(std::string source) {
 	denonPost("PutZone_InputFunction/" + url_encode(source));
+    }
+
+    bool success() const {
+	return !ip.empty();
     }
 
 private: 
@@ -108,9 +112,9 @@ private:
 
 
 struct Roku_query {
-    Roku_query(std::string ip_input) {
+    Roku_query(std::string ip_input, Display display) {
 	ip = ip_input;
-	if (ip.empty()) throw std::runtime_error("No Roku IP.");
+	if (ip.empty()) display.displayMessage("No Roku IP!");
 	curl = curl_easy_init();
 	if (!curl) { throw std::runtime_error("curl initialization failed"); }
 	readBuffer = "";
@@ -130,6 +134,10 @@ struct Roku_query {
 
 	curl_execute(curl, readBuffer, URL, HTTP_MODE::POST);
 
+    }
+
+    bool success() const {
+	return !ip.empty();
     }
 
 private: 
@@ -287,9 +295,10 @@ int main(int argc, char **argv) {
     otherwise we'll initiate a new display (a copy) when we pass display <= 01/13/24 16:29:25 */ 
     IPs ips(display);
 
-    Roku_query roku(ips.getRoku());
-    Denon_control denon(ips.getDenon());
-    display.displayMessage("Roku and denon control established.");
+    Roku_query roku(ips.getRoku(), display);
+    Denon_control denon(ips.getDenon(), display);
+    if (roku.success() && denon.success()) display.displayMessage("Roku and denon control established.");
+    else display.displayMessage("Missing some control.");
     display.clearMessages(1500);
     LiteralMode literalmode;
     char ch;
