@@ -3,6 +3,7 @@
 #include <ncurses.h>
 #include <string>
 
+
 class Display {
     int numberOfPersistentLines;
     int numberOfDisplayMessages;

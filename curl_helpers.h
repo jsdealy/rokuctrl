@@ -8,7 +8,7 @@
 #include <vector>
 #include "./display.h"
 #include "jtb/jtbstr.h"
-
+#include "jtb/jtbvec.h"
 
 enum class HTTP_MODE { GET, POST };
 

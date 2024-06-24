@@ -147,11 +147,20 @@ void IPs::setIPs(Display& display) {
     JTB::Vec<JTB::Str> ips;
     std::size_t size = pingOutput.size();
     for (std::size_t i { pingOutput.find("192") }; i < size && i != JTB::Str::NPOS; ) {
-	std::size_t endOfIP = pingOutput.find("192");
+	std::size_t endOfIP = pingOutput.find("192", i+1);
 	endOfIP = endOfIP == JTB::Str::NPOS ? pingOutput.size() : endOfIP;
 	ips.push(pingOutput.slice(i,endOfIP));
 	i = endOfIP;
     }
+    ips = ips.filter([](JTB::Str s) {
+	return s.startsWith("192.168.1.");
+    });
+    ips = ips.map<JTB::Str>([](JTB::Str s) -> JTB::Str {
+	return s.slice(0,13);
+    });
+    ips = ips.filter([](JTB::Str s) {
+	return !s.endsWith(".");
+    });
     ips.sort([](const JTB::Str s1, const JTB::Str s2) -> float {
 	return strcmp(s1.c_str(), s2.c_str());
     });
