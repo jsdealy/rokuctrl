@@ -40,6 +40,10 @@ struct Denon_control {
     void volumeUp() {
 	cmd(CMD::VOLUP);
     }
+
+    void mute() {
+	cmd(CMD::MUTE);
+    }
     
     void volumeDown() {
 	cmd(CMD::VOLDOWN);
@@ -80,7 +84,7 @@ private:
 	std::string commandbody;
 	/* these are the values for cmd0 that need to be posted to modify the volume <= 09/18/23 18:38:32 */ 
 	if (com == CMD::VOLUP) { commandbody = url_encode("PutMasterVolumeBtn/>"); }
-	else if (com == CMD::MUTE) { commandbody = url_encode("PutVolumeMute/"); }
+	else if (com == CMD::MUTE) { commandbody = url_encode("PutVolumeMute/TOGGLE"); }
 	else if (com == CMD::VOLDOWN) { commandbody = url_encode("PutMasterVolumeBtn/<"); }
 	else if (com == CMD::POWER) { 
 	    commandbody = powerstate() ? url_encode("PutZone_OnOff/OFF") : url_encode("PutZone_OnOff/ON");
@@ -229,6 +233,7 @@ void handle_keypress(LiteralMode& literalmode,
 	}
 	case '\\': ips.setIPs(display);
 	case '=': literalmode.handle(roku, "=", LiteralMode::KeyType::DENONCOMMAND, [&]() { denon.volumeUp(); }, display); break;
+	case 'm': literalmode.handle(roku, "=", LiteralMode::KeyType::DENONCOMMAND, [&]() { denon.mute(); }, display); break;
 	case '1': literalmode.handle(roku, "1", LiteralMode::KeyType::DENONCOMMAND, [&]() { denon.switchTo("MPLAY"); }, display); break;
 	case '2': literalmode.handle(roku, "2", LiteralMode::KeyType::DENONCOMMAND, [&]() { denon.switchTo("DVD"); }, display); break;
 	case '3': literalmode.handle(roku, "3", LiteralMode::KeyType::DENONCOMMAND, [&]() { denon.switchTo("GAME"); }, display); break;
@@ -283,6 +288,7 @@ int main(int argc, char **argv) {
 	"* => search",
 	"= => volume up",
 	"- => volume down",
+	"m => mute",
 	"Ctrl+l => toggle literal input",
 	"\\ => reset ips"
     };

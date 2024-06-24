@@ -47,13 +47,13 @@ In file included from ./curl_helpers.h:9,
    42 |         } catch (std::runtime_error e) {
       |                                     ^
 rokuctrl.cpp: In function ‘int main(int, char**)’:
-rokuctrl.cpp:306:37: warning: catching polymorphic type ‘class std::runtime_error’ by value [-Wcatch-value=]
-  306 |         } catch (std::runtime_error e) {
+rokuctrl.cpp:312:37: warning: catching polymorphic type ‘class std::runtime_error’ by value [-Wcatch-value=]
+  312 |         } catch (std::runtime_error e) {
       |                                     ^
 rokuctrl.cpp: In function ‘void handle_keypress(LiteralMode&, char, Roku_query&, Denon_control&, IPs&, Display&)’:
-rokuctrl.cpp:230:30: warning: this statement may fall through [-Wimplicit-fallthrough=]
-  230 |         case '\\': ips.setIPs(display);
+rokuctrl.cpp:234:30: warning: this statement may fall through [-Wimplicit-fallthrough=]
+  234 |         case '\\': ips.setIPs(display);
       |                    ~~~~~~~~~~^~~~~~~~~
-rokuctrl.cpp:231:9: note: here
-  231 |         case '=': literalmode.handle(roku, "=", LiteralMode::KeyType::DENONCOMMAND, [&]() { denon.volumeUp(); }, display); break;
+rokuctrl.cpp:235:9: note: here
+  235 |         case '=': literalmode.handle(roku, "=", LiteralMode::KeyType::DENONCOMMAND, [&]() { denon.volumeUp(); }, display); break;
       |         ^~~~
