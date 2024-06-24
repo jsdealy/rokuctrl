@@ -7,6 +7,8 @@
 #include <string>
 #include <vector>
 #include "./display.h"
+#include "jtb/jtbstr.h"
+
 
 enum class HTTP_MODE { GET, POST };
 
@@ -22,16 +24,16 @@ std::string getOutputFromShellCommand(const char* cmd);
 size_t write__callback(void* contents, size_t size, size_t nmemb, void* userdata); 
 
 void curl_execute(CURL *curl, 
-		  std::string& readBuffer,
-		  std::string& URL,
+		  JTB::Str& readBuffer,
+		  JTB::Str& URL,
 		  HTTP_MODE mode = HTTP_MODE::GET,
-		  std::string post_command = "", 
+		  JTB::Str post_command = "", 
 		  size_t (*write_callback)(void* contents, size_t size, size_t nmemb, void* userdata) = write__callback);
 
 
-bool testForRoku(CURL *curl, std::string ip); 
+bool testForRoku(CURL *curl, JTB::Str& ip); 
 
-bool testForDenon(CURL *curl, std::string ip); 
+bool testForDenon(CURL *curl, JTB::Str& ip); 
 
 struct IPs {
     IPs(Display& display) { 
@@ -56,16 +58,16 @@ struct IPs {
 
     void setIPs(Display&); 
 
-    std::string getRoku() {
+    const JTB::Str& getRoku() {
 	return roku;
     };
 
-    std::string getDenon() {
+    const JTB::Str& getDenon() {
 	return denon;
     };
 
 private: 
-    std::string denon;
-    std::string roku;
+    JTB::Str denon;
+    JTB::Str roku;
     Found found;
 };

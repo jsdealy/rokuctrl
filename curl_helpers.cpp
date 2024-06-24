@@ -19,6 +19,7 @@
 #include <array>
 #include <regex>
 
+
 DEBUGMODE debugmode = DEBUGMODE::OFF;
 
 template <typename T>
@@ -46,22 +47,23 @@ size_t write__callback(void* contents, size_t size, size_t nmemb, void* userdata
     size_t realSize = size * nmemb;
 
     // Convert the buffer pointer to a string pointer 
-    std::string* outStr = (std::string*)userdata;
+    JTB::Str* outStr = (JTB::Str*)userdata;
     /* note: you can't clear out the outStr before appending, 
      * since this callback will be called multiple times (potentially)
      * for a given http request; just have to be sure to send 
      * in a clean buffer with each call to curl_execute
      * <= 09/30/23 15:56:01 */ 
-    outStr->append((char*)contents, realSize);
+    /* outStr->append((char*)contents, realSize); */
+    outStr->push((char *)contents, realSize);
 
     return realSize;
 }
 
 void curl_execute(CURL *curl, 
-		  std::string& readBuffer,
-		  std::string& URL,
+		  JTB::Str& readBuffer,
+		  JTB::Str& URL,
 		  HTTP_MODE mode,
-		  std::string post_command, 
+		  JTB::Str post_command, 
 		  size_t (*write_callback)(void* contents, size_t size, size_t nmemb, void* userdata)) {
 
     curl_easy_setopt(curl, CURLOPT_URL, URL.c_str());
@@ -98,15 +100,16 @@ void curl_execute(CURL *curl,
 
     std::regex re { R"([^\s])" };
 
-    if (debugmode == DEBUGMODE::ON && std::regex_search(readBuffer, re)) 
+    if (debugmode == DEBUGMODE::ON && std::regex_search(readBuffer.stdstr(), re)) 
 	printw("%s\n", readBuffer.c_str());
 }
 
 
-bool testForRoku(CURL *curl, std::string ip) {
-    std::string buffer = "";
+bool testForRoku(CURL *curl, JTB::Str& ip) {
+    JTB::Str buffer {};
     try {
-	curl_execute(curl, buffer, std::string("http://").append(ip.append(":8060/query/media-player")));
+	JTB::Str rokuQuery { "http://" + ip + ":8060/query/media-player" };
+	curl_execute(curl, buffer, rokuQuery);
     } catch (std::runtime_error e) {
 	if (std::string(e.what()).find("Couldn't connect") == std::string::npos) throw e;
     }
@@ -116,15 +119,16 @@ bool testForRoku(CURL *curl, std::string ip) {
     return false;
 }
 
-bool testForDenon(CURL *curl, std::string ip) {
-    std::string buffer = "";
+bool testForDenon(CURL *curl, JTB::Str& ip) {
+    JTB::Str buffer {};
     try {
-	curl_execute(curl, buffer, std::string("http://").append(ip.append("/MainZone/index.html")));
+	JTB::Str denonTest { "http://" + ip + "/MainZone/index.html" };
+	curl_execute(curl, buffer, denonTest);
     } catch (std::runtime_error e) {
 	if (std::string(e.what()).find("Couldn't connect") == std::string::npos) throw e;
     }
 
-    if (buffer.find("Volume") != std::string::npos) 
+    if (buffer.boolFind("Volume")) 
 	return true;
     return false;
 }
@@ -132,19 +136,37 @@ bool testForDenon(CURL *curl, std::string ip) {
 
 void IPs::setIPs(Display& display) {
     display.displayMessage("Getting ips...");
-    std::string pingOutput { getOutputFromShellCommand("timeout 7 ping -b 192.168.1.255 2> /dev/null") };
-    pingOutput.append(getOutputFromShellCommand("nmap -sP 192.168.1.0/24 2> /dev/null"));
-    display.displayMessage("Regexing...");
-    std::regex re { R"(192\.168\.1\.[\d]{1,3})" };
-    std::vector<std::string> ips;
-    /* this works since regex_search returns true each time it finds a hit <= 09/25/23 23:44:40 */ 
-    for (std::smatch sm; std::regex_search(pingOutput, sm, re);) {
-	if (!inVec(ips, std::string(sm[0]))) ips.push_back(sm[0]);
-	pingOutput = sm.suffix();
+    JTB::Str pingOutput { getOutputFromShellCommand("timeout 7 ping -b 192.168.1.255 2> /dev/null") };
+    pingOutput.push(getOutputFromShellCommand("nmap -sP 192.168.1.0/24 2> /dev/null"));
+    display.displayMessage("Extracting ips from ping and nmap output...");
+    /* std::regex re { R"(192\.168\.1\.[\d]{1,3})" }; */
+    pingOutput = pingOutput.filter([](const char c) -> bool {
+	JTB::Str charsInIpAddresses { "123456789." };
+	return charsInIpAddresses.boolFind(c);
+    });
+    JTB::Vec<JTB::Str> ips;
+    std::size_t size = pingOutput.size();
+    for (std::size_t i { pingOutput.find("192") }; i < size && i != JTB::Str::NPOS; ) {
+	std::size_t endOfIP = pingOutput.find("192");
+	endOfIP = endOfIP == JTB::Str::NPOS ? pingOutput.size() : endOfIP;
+	ips.push(pingOutput.slice(i,endOfIP));
+	i = endOfIP;
     }
-    display.displayMessage("Searching roku & denon ips...");
+    ips.sort([](const JTB::Str s1, const JTB::Str s2) -> float {
+	return strcmp(s1.c_str(), s2.c_str());
+    });
+
+    JTB::Vec<JTB::Str> ipsPruned;
+
+    ips.forEach([&](JTB::Str s) {
+	if (!ipsPruned.includes(s)) {
+	    ipsPruned.push(s);
+	}
+    });
+
+    display.displayMessage("Checking ips for roku & denon response...");
     std::unique_ptr<CURL, decltype(&curl_easy_cleanup)> curl(curl_easy_init(), curl_easy_cleanup);
-    for (int i = 0; !found && i < ips.size(); i++) {
+    for (int i = 0; !found && i < ips.size(); ++i) {
 	if (!found.roku) {
 	    try {
 		found.roku = testForRoku(curl.get(), ips.at(i));

@@ -22,12 +22,13 @@
 #include "./curl_helpers.h"
 #include "./display.h"
 
+
 extern DEBUGMODE debugmode;
 
 struct Denon_control {
-    Denon_control(std::string ip_input, Display& display) {
+    Denon_control(const JTB::Str& ip_input, Display& display) {
 	ip = ip_input;
-	if (ip.empty()) display.displayMessage("No Denon IP!");
+	if (ip.isEmpty()) display.displayMessage("No Denon IP!");
 	curl = curl_easy_init();
 	if (!curl) { throw std::runtime_error("curl initialization failed"); }
     }
@@ -53,25 +54,22 @@ struct Denon_control {
     }
 
     bool success() const {
-	return !ip.empty();
+	return !ip.isEmpty();
     }
 
 private: 
     CURL* curl;
-    std::string ip;
+    JTB::Str ip;
+    enum class CMD { MUTE, VOLUP, VOLDOWN, POWER };
+    bool pow; 
 
-    enum class CMD { VOLUP, VOLDOWN, POWER };
+    void denonPost(JTB::Str commandbody) {
+	JTB::Str readBuffer {};
+	JTB::Str URL { "http://" + ip + "/MainZone/index.put.asp"}; 
 
-    void denonPost(std::string commandbody) {
-	std::string readBuffer;
-	std::string tailURL { "/MainZone/index.put.asp" };
-	std::string URL = std::format("http://{}{}", ip, tailURL);
-
-	std::string command { "cmd0=" };
-	
 	/* if (debugmode == DEBUGMODE::ON) { printw("URL: %s", URL.c_str()); } */
 
-	std::string post_command = command.append(commandbody);
+	JTB::Str post_command { "cmd0=" + commandbody };
 
 	/* if (debugmode == DEBUGMODE::ON) { printw("POST: %s", post_command.c_str()); } */
 
@@ -79,11 +77,10 @@ private:
     }
 
     void cmd(CMD com) {
-
-
 	std::string commandbody;
 	/* these are the values for cmd0 that need to be posted to modify the volume <= 09/18/23 18:38:32 */ 
 	if (com == CMD::VOLUP) { commandbody = url_encode("PutMasterVolumeBtn/>"); }
+	else if (com == CMD::MUTE) { commandbody = url_encode("PutVolumeMute/"); }
 	else if (com == CMD::VOLDOWN) { commandbody = url_encode("PutMasterVolumeBtn/<"); }
 	else if (com == CMD::POWER) { 
 	    commandbody = powerstate() ? url_encode("PutZone_OnOff/OFF") : url_encode("PutZone_OnOff/ON");
@@ -91,14 +88,13 @@ private:
 	} else throw std::runtime_error("passed a bad arg to denon cmd method");
 
 	denonPost(commandbody);
-
-
     }
 
     bool powerstate() {
-	std::string buff;
-	std::string tailURL { "/goform/formMainZone_MainZoneXml.xml" };
-	std::string URL = std::format("http://{}{}", ip, tailURL);
+	JTB::Str buff;
+	JTB::Str tailURL { "/goform/formMainZone_MainZoneXml.xml" };
+	JTB::Str URL { "http://" };
+	URL += ip + tailURL;
 	curl_execute(curl, buff, URL);
 	if (buff.find("<Power><value>ON</value></Power>") != std::string::npos) {
 	    if (debugmode == DEBUGMODE::ON) { printw("%s\n", "returning true"); };
@@ -112,11 +108,11 @@ private:
 
 
 struct Roku_query {
-    Roku_query(std::string ip_input, Display& display) {
+    Roku_query(const JTB::Str& ip_input, Display& display) {
 	ip = ip_input;
-	if (ip.empty()) display.displayMessage("No Roku IP!");
+	if (ip.isEmpty()) display.displayMessage("No Roku IP!");
 	curl = curl_easy_init();
-	if (!curl) { throw std::runtime_error("curl initialization failed"); }
+	if (!curl) { throw std::runtime_error("Curl failed in Roku_query."); }
 	readBuffer = "";
     }
 
@@ -126,9 +122,9 @@ struct Roku_query {
 
     void rokucommand(const char * command) {
 
-	std::string URL = std::format("http://{}:8060/keypress/", ip); 
+	JTB::Str URL { "http://" + ip + ":8060/keypress/" }; 
 	
-	URL = URL.append(command);
+	URL += command;
 
 	if (debugmode == DEBUGMODE::ON) { printw("%s", URL.c_str()); }
 
@@ -137,13 +133,13 @@ struct Roku_query {
     }
 
     bool success() const {
-	return !ip.empty();
+	return !ip.isEmpty();
     }
 
 private: 
     CURL* curl;
-    std::string readBuffer;
-    std::string ip;
+    JTB::Str readBuffer;
+    JTB::Str ip;
 
 };
 
@@ -179,11 +175,13 @@ struct LiteralMode {
     LiteralMode() { litmode = false; };
 
     enum class KeyType { ROKUCOMMAND, DENONCOMMAND, NONCOMMAND };
+
     void toggle(Display& display) { 
 	litmode = !litmode; 
 	if (litmode) display.displayMessage("literal mode"); 
 	else { display.clearMessages(); display.flashMessage("default mode", 250); }
     };
+
     operator bool() { return litmode; };
 
     void handle(Roku_query& roku, 
