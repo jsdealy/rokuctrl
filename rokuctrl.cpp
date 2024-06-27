@@ -335,7 +335,7 @@ void handle_keypress(LiteralMode& literalmode,
 	case '\n': literalmode.handle(roku, "\n", LiteralMode::KeyType::ROKUCOMMAND, "enter", display); break;
 	case '\x07': literalmode.handle(roku, "\b", LiteralMode::KeyType::ROKUCOMMAND, "backspace", display); break;
 	case 'i': literalmode.handle(roku, "i", LiteralMode::KeyType::ROKUCOMMAND, "info", display); break;
-	case 'o': literalmode.handle(roku, " ", LiteralMode::KeyType::ROKUCOMMAND, "select", display); break;
+	case 'o': literalmode.handle(roku, "o", LiteralMode::KeyType::ROKUCOMMAND, "select", display); break;
 	default: literalmode.handle(roku, std::format("{}", key), LiteralMode::KeyType::NONCOMMAND, std::format("{}", key), display);
     }
 }
