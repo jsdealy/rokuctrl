@@ -17,10 +17,14 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <thread>
+#include <chrono>
 #include <array>
 #include <regex>
 #include "./curl_helpers.h"
 #include "./display.h"
+#include "jtb/jtbcli.h"
+
 
 
 extern DEBUGMODE debugmode;
@@ -176,9 +180,9 @@ std::string url_encode(const std::string value) {
 }
 
 struct LiteralMode {
-    LiteralMode() { litmode = false; };
+    LiteralMode(): litmode(false) {};
 
-    enum class KeyType { ROKUCOMMAND, DENONCOMMAND, NONCOMMAND };
+    enum class KeyType { BLURAYSOUNDON, BLURAYCOMMAND, ROKUCOMMAND, DENONCOMMAND, NONCOMMAND };
 
     void toggle(Display& display) { 
 	litmode = !litmode; 
@@ -193,6 +197,7 @@ struct LiteralMode {
 		KeyType keytype, 
 		const std::variant<std::string, const std::function<void ()>>& command,
 		Display& display) {
+
 	if (litmode) { 
 	    std::string litstring = "";
 	    if ((std::holds_alternative<std::string>(command) && std::get<std::string>(command) != "backspace")
@@ -205,6 +210,62 @@ struct LiteralMode {
 	else { 
 	    if (keytype == KeyType::ROKUCOMMAND) { roku.rokucommand(std::get<std::string>(command).c_str()); }
 	    else if (keytype == KeyType::DENONCOMMAND) { std::get<const std::function<void ()>>(command)(); }
+	    else if (keytype == KeyType::BLURAYCOMMAND) {
+		JTB::ClCommand callToPythonBlurayC("blurayC.py " + std::get<std::string>(command));
+		display.flashMessage(callToPythonBlurayC.getResult().first.stdstr());
+	    }
+	    else if (keytype == KeyType::BLURAYSOUNDON) {
+		display.displayMessage("Is the audio on? [Y/n]");
+		JTB::Str check {getch()};
+		display.clearMessages();
+		if (!check.lower().startsWith("n")) {
+		    return;
+		}
+		JTB::ClCommand callToPythonBlurayC("blurayC.py back");
+		display.flashMessage(callToPythonBlurayC.getResult().first.stdstr());
+		std::this_thread::sleep_for(std::chrono::milliseconds(600));
+		callToPythonBlurayC.sendCommand("blurayC.py right");
+		display.flashMessage(callToPythonBlurayC.getResult().first.stdstr());
+		std::this_thread::sleep_for(std::chrono::milliseconds(600));
+		callToPythonBlurayC.sendCommand("blurayC.py right");
+		display.flashMessage(callToPythonBlurayC.getResult().first.stdstr());
+		std::this_thread::sleep_for(std::chrono::milliseconds(600));
+		callToPythonBlurayC.sendCommand("blurayC.py right");
+		display.flashMessage(callToPythonBlurayC.getResult().first.stdstr());
+		std::this_thread::sleep_for(std::chrono::milliseconds(600));
+		callToPythonBlurayC.sendCommand("blurayC.py okay");
+		display.flashMessage(callToPythonBlurayC.getResult().first.stdstr());
+		std::this_thread::sleep_for(std::chrono::milliseconds(600));
+		callToPythonBlurayC.sendCommand("blurayC.py down");
+		display.flashMessage(callToPythonBlurayC.getResult().first.stdstr());
+		std::this_thread::sleep_for(std::chrono::milliseconds(600));
+		callToPythonBlurayC.sendCommand("blurayC.py right");
+		display.flashMessage(callToPythonBlurayC.getResult().first.stdstr());
+		std::this_thread::sleep_for(std::chrono::milliseconds(600));
+		callToPythonBlurayC.sendCommand("blurayC.py down");
+		display.flashMessage(callToPythonBlurayC.getResult().first.stdstr());
+		std::this_thread::sleep_for(std::chrono::milliseconds(600));
+		callToPythonBlurayC.sendCommand("blurayC.py down");
+		display.flashMessage(callToPythonBlurayC.getResult().first.stdstr());
+		std::this_thread::sleep_for(std::chrono::milliseconds(600));
+		callToPythonBlurayC.sendCommand("blurayC.py down");
+		display.flashMessage(callToPythonBlurayC.getResult().first.stdstr());
+		std::this_thread::sleep_for(std::chrono::milliseconds(600));
+		callToPythonBlurayC.sendCommand("blurayC.py right");
+		display.flashMessage(callToPythonBlurayC.getResult().first.stdstr());
+		std::this_thread::sleep_for(std::chrono::milliseconds(600));
+		callToPythonBlurayC.sendCommand("blurayC.py down");
+		display.flashMessage(callToPythonBlurayC.getResult().first.stdstr());
+		std::this_thread::sleep_for(std::chrono::milliseconds(600));
+		callToPythonBlurayC.sendCommand("blurayC.py okay");
+		display.flashMessage(callToPythonBlurayC.getResult().first.stdstr());
+		std::this_thread::sleep_for(std::chrono::milliseconds(1500));
+		callToPythonBlurayC.sendCommand("blurayC.py back");
+		display.flashMessage(callToPythonBlurayC.getResult().first.stdstr());
+		std::this_thread::sleep_for(std::chrono::milliseconds(800));
+		callToPythonBlurayC.sendCommand("blurayC.py play");
+		display.flashMessage(callToPythonBlurayC.getResult().first.stdstr());
+	    } 
 	    else {
 		const char *skeleton = "You pressed the '%c' key!\n"; 
 		char buf[std::strlen(skeleton)+1];
@@ -232,8 +293,24 @@ void handle_keypress(LiteralMode& literalmode,
 	    break;
 	}
 	case '\\': ips.setIPs(display);
+	case 'X': literalmode.handle(roku, "X", LiteralMode::KeyType::BLURAYSOUNDON, "", display); break;
+	case 'A': literalmode.handle(roku, "A", LiteralMode::KeyType::BLURAYCOMMAND, "play", display); break;
+	case 'P': literalmode.handle(roku, "P", LiteralMode::KeyType::BLURAYCOMMAND, "tvpower", display); break;
+	case 'U': literalmode.handle(roku, "U", LiteralMode::KeyType::BLURAYCOMMAND, "bluraypower", display); break;
+	case 'S': literalmode.handle(roku, "S", LiteralMode::KeyType::BLURAYCOMMAND, "pause", display); break;
+	case 'T': literalmode.handle(roku, "T", LiteralMode::KeyType::BLURAYCOMMAND, "stop", display); break;
+	case 'D': literalmode.handle(roku, "D", LiteralMode::KeyType::BLURAYCOMMAND, "rewind", display); break;
+	case 'F': literalmode.handle(roku, "F", LiteralMode::KeyType::BLURAYCOMMAND, "fastforward", display); break;
+	case 'H': literalmode.handle(roku, "H", LiteralMode::KeyType::BLURAYCOMMAND, "left", display); break;
+	case 'L': literalmode.handle(roku, "L", LiteralMode::KeyType::BLURAYCOMMAND, "right", display); break;
+	case 'K': literalmode.handle(roku, "K", LiteralMode::KeyType::BLURAYCOMMAND, "up", display); break;
+	case 'J': literalmode.handle(roku, "J", LiteralMode::KeyType::BLURAYCOMMAND, "down", display); break;
+	case 'B': literalmode.handle(roku, "B", LiteralMode::KeyType::BLURAYCOMMAND, "back", display); break;
+	case 'O': literalmode.handle(roku, "O", LiteralMode::KeyType::BLURAYCOMMAND, "okay", display); break;
+	case 'M': literalmode.handle(roku, "M", LiteralMode::KeyType::BLURAYCOMMAND, "menu", display); break;
+	case 'E': literalmode.handle(roku, "E", LiteralMode::KeyType::BLURAYCOMMAND, "eject", display); break;
 	case '=': literalmode.handle(roku, "=", LiteralMode::KeyType::DENONCOMMAND, [&]() { denon.volumeUp(); }, display); break;
-	case 'm': literalmode.handle(roku, "=", LiteralMode::KeyType::DENONCOMMAND, [&]() { denon.mute(); }, display); break;
+	case 'm': literalmode.handle(roku, "m", LiteralMode::KeyType::DENONCOMMAND, [&]() { denon.mute(); }, display); break;
 	case '1': literalmode.handle(roku, "1", LiteralMode::KeyType::DENONCOMMAND, [&]() { denon.switchTo("MPLAY"); }, display); break;
 	case '2': literalmode.handle(roku, "2", LiteralMode::KeyType::DENONCOMMAND, [&]() { denon.switchTo("DVD"); }, display); break;
 	case '3': literalmode.handle(roku, "3", LiteralMode::KeyType::DENONCOMMAND, [&]() { denon.switchTo("GAME"); }, display); break;
@@ -242,9 +319,9 @@ void handle_keypress(LiteralMode& literalmode,
 	case '6': literalmode.handle(roku, "6", LiteralMode::KeyType::DENONCOMMAND, [&]() { denon.switchTo("SAT/CBL"); }, display); break;
 	case '7': literalmode.handle(roku, "7", LiteralMode::KeyType::DENONCOMMAND, [&]() { denon.switchTo("TUNER"); }, display); break;
 	case '-': literalmode.handle(roku, "-", LiteralMode::KeyType::DENONCOMMAND, [&]() { denon.volumeDown(); }, display); break;
+	case 'p': literalmode.handle(roku, "p", LiteralMode::KeyType::DENONCOMMAND, [&]() { denon.power(); }, display); break;
 	case 'a': literalmode.handle(roku, "a", LiteralMode::KeyType::ROKUCOMMAND, "play", display); break;
 	case '*': literalmode.handle(roku, "*", LiteralMode::KeyType::ROKUCOMMAND, "search", display); break;
-	case 'P': literalmode.handle(roku, "P", LiteralMode::KeyType::ROKUCOMMAND, "poweroff", display); break;
 	case 's': literalmode.handle(roku, "s", LiteralMode::KeyType::ROKUCOMMAND, "pause", display); break;
 	case 'h': literalmode.handle(roku, "h", LiteralMode::KeyType::ROKUCOMMAND, "left", display); break;
 	case 'l': literalmode.handle(roku, "l", LiteralMode::KeyType::ROKUCOMMAND, "right", display); break;
@@ -258,8 +335,7 @@ void handle_keypress(LiteralMode& literalmode,
 	case '\n': literalmode.handle(roku, "\n", LiteralMode::KeyType::ROKUCOMMAND, "enter", display); break;
 	case '\x07': literalmode.handle(roku, "\b", LiteralMode::KeyType::ROKUCOMMAND, "backspace", display); break;
 	case 'i': literalmode.handle(roku, "i", LiteralMode::KeyType::ROKUCOMMAND, "info", display); break;
-	case 'p': literalmode.handle(roku, "p", LiteralMode::KeyType::DENONCOMMAND, [&]() { denon.power(); }, display); break;
-	case ' ': literalmode.handle(roku, " ", LiteralMode::KeyType::ROKUCOMMAND, "select", display); break;
+	case 'o': literalmode.handle(roku, " ", LiteralMode::KeyType::ROKUCOMMAND, "select", display); break;
 	default: literalmode.handle(roku, std::format("{}", key), LiteralMode::KeyType::NONCOMMAND, std::format("{}", key), display);
     }
 }
@@ -270,21 +346,26 @@ int main(int argc, char **argv) {
     if (argc > 1 && std::string(*(argv+1)) == "--debug") { printw("%s\n", *(argv+1)); debugmode = DEBUGMODE::ON; };
 
     std::vector<std::string> staticDisplay {
-	"a => play",
-	"s => pause",
-	"d => rev",
-	"f => fwd",
+	"a (A) => play",
+	"s (S) => pause",
+	"d (D) => rev",
+	"f (F) => fwd",
+	"h (H) => left",
+	"l (L) => right",
+	"k (K) => up",
+	"j (J) => down",
+	"b (B) => back",
+	"M => menu",
+	"E => eject",
+	"T => stop",
+	"X => activate blu-ray audio",
+	"o (O) => okay",
+	"p (P) (U) => power",
 	"g => home",
-	"h => left",
-	"l => right",
-	"k => up",
-	"j => down",
-	"b => back",
 	"r => instantreplay",
 	"i => info",
 	"enter => enter",
 	"backspace => backspace",
-	"spacebar => select",
 	"* => search",
 	"= => volume up",
 	"- => volume down",

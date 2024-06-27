@@ -34,7 +34,7 @@ curl_helpers.cpp:195:41: warning: catching polymorphic type ‘class std::runtim
   195 |             } catch (std::runtime_error e) {
       |                                         ^
 In file included from ./curl_helpers.h:9,
-                 from rokuctrl.cpp:22:
+                 from rokuctrl.cpp:24:
 ././display.h: In constructor ‘Display::Display(std::vector<std::__cxx11::basic_string<char> >)’:
 ././display.h:19:28: warning: comparison of integer expressions of different signedness: ‘std::__cxx11::basic_string<char>::size_type’ {aka ‘long unsigned int’} and ‘int’ [-Wsign-compare]
    19 |             if (s.length() > longestPersistentLine) longestPersistentLine = s.length();
@@ -47,13 +47,13 @@ In file included from ./curl_helpers.h:9,
    42 |         } catch (std::runtime_error e) {
       |                                     ^
 rokuctrl.cpp: In function ‘int main(int, char**)’:
-rokuctrl.cpp:312:37: warning: catching polymorphic type ‘class std::runtime_error’ by value [-Wcatch-value=]
-  312 |         } catch (std::runtime_error e) {
+rokuctrl.cpp:393:37: warning: catching polymorphic type ‘class std::runtime_error’ by value [-Wcatch-value=]
+  393 |         } catch (std::runtime_error e) {
       |                                     ^
 rokuctrl.cpp: In function ‘void handle_keypress(LiteralMode&, char, Roku_query&, Denon_control&, IPs&, Display&)’:
-rokuctrl.cpp:234:30: warning: this statement may fall through [-Wimplicit-fallthrough=]
-  234 |         case '\\': ips.setIPs(display);
+rokuctrl.cpp:295:30: warning: this statement may fall through [-Wimplicit-fallthrough=]
+  295 |         case '\\': ips.setIPs(display);
       |                    ~~~~~~~~~~^~~~~~~~~
-rokuctrl.cpp:235:9: note: here
-  235 |         case '=': literalmode.handle(roku, "=", LiteralMode::KeyType::DENONCOMMAND, [&]() { denon.volumeUp(); }, display); break;
+rokuctrl.cpp:296:9: note: here
+  296 |         case 'X': literalmode.handle(roku, "X", LiteralMode::KeyType::BLURAYSOUNDON, "", display); break;
       |         ^~~~

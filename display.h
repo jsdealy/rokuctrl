@@ -25,7 +25,7 @@ public:
 	}
 	topBottomBorder.append("-+");
 
-	printw("\n  %s\n", "ROKU & DENON CONTROLLER");
+	printw("\n  %s\n", "ROKU DENON & BLURAY CONTROLLER");
 	printw("%s\n", topBottomBorder.c_str());
 	for (std::string s : persistentLines) {
 	    std::string spacerAndBackBorder = "";
