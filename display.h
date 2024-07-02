@@ -2,6 +2,8 @@
 #include <vector>
 #include <ncurses.h>
 #include <string>
+#include "jtb/jtbstr.h"
+
 
 
 class Display {
@@ -57,7 +59,7 @@ public:
 	refresh();
     }
 
-    void displayMessage(std::string s) {
+    void displayMessage(JTB::Str s) {
 	numberOfDisplayMessages++;
 	printw(" %s\n", s.c_str());
 	refresh();

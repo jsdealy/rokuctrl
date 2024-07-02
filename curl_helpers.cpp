@@ -18,6 +18,8 @@
 #include <string>
 #include <array>
 #include <regex>
+#include <fstream>
+
 
 
 DEBUGMODE debugmode = DEBUGMODE::OFF;
@@ -42,7 +44,7 @@ std::string getOutputFromShellCommand(const char* cmd) {
 }
 
 
-size_t write__callback(void* contents, size_t size, size_t nmemb, void* userdata) {
+size_t Curl::write__callback(void* contents, size_t size, size_t nmemb, void* userdata) {
     // Compute the real size of the incoming buffer
     size_t realSize = size * nmemb;
 
@@ -59,38 +61,37 @@ size_t write__callback(void* contents, size_t size, size_t nmemb, void* userdata
     return realSize;
 }
 
-void curl_execute(CURL *curl, 
-		  JTB::Str& readBuffer,
+void Curl::curl_execute(JTB::Str& readBuffer,
 		  JTB::Str& URL,
 		  HTTP_MODE mode,
 		  JTB::Str post_command, 
 		  size_t (*write_callback)(void* contents, size_t size, size_t nmemb, void* userdata)) {
 
-    curl_easy_setopt(curl, CURLOPT_URL, URL.c_str());
+    curl_easy_setopt(curlpointer, CURLOPT_URL, URL.c_str());
 
     if (mode == HTTP_MODE::POST) {
 	/* this ensures we send a post request <= 09/18/23 18:39:06 */ 
-	curl_easy_setopt(curl, CURLOPT_POST, 1L);
+	curl_easy_setopt(curlpointer, CURLOPT_POST, 1L);
 
 	/* this is what sets the posted data <= 09/18/23 18:39:16 */ 
-	curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post_command.c_str());
+	curl_easy_setopt(curlpointer, CURLOPT_POSTFIELDS, post_command.c_str());
     }     
 
     // Send all returned data to this function
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
+    curl_easy_setopt(curlpointer, CURLOPT_WRITEFUNCTION, write_callback);
 
     // Pass our 'readBuffer' to the callback function
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+    curl_easy_setopt(curlpointer, CURLOPT_WRITEDATA, &readBuffer);
 
-    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 3L);  // timeout after 3 seconds
+    curl_easy_setopt(curlpointer, CURLOPT_TIMEOUT, 3L);  // timeout after 3 seconds
 
-    curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 10L);  // connection timeout after 5 seconds
+    curl_easy_setopt(curlpointer, CURLOPT_CONNECTTIMEOUT, 10L);  // connection timeout after 5 seconds
 
     /* TURN THIS ON FOR DEBUGGING <= 09/18/23 13:25:46 */ 
     /* curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L); */
 
     // Perform the request, and check for errors
-    CURLcode res = curl_easy_perform(curl);
+    CURLcode res = curl_easy_perform(curlpointer);
 
     if(res != CURLE_OK) {
 	/* endwin(); */
@@ -105,26 +106,26 @@ void curl_execute(CURL *curl,
 }
 
 
-bool testForRoku(CURL *curl, JTB::Str& ip) {
+bool IPs::testForRoku(JTB::Str& ip, Curl& curl) {
     JTB::Str buffer {};
     try {
 	JTB::Str rokuQuery { "http://" + ip + ":8060/query/media-player" };
-	curl_execute(curl, buffer, rokuQuery);
-    } catch (std::runtime_error e) {
+	curl.curl_execute(buffer, rokuQuery);
+    } catch (std::runtime_error& e) {
 	if (std::string(e.what()).find("Couldn't connect") == std::string::npos) throw e;
     }
     
-    if (buffer.find("player") != std::string::npos) 
+    if (buffer.boolFind("player")) 
 	return true;
     return false;
 }
 
-bool testForDenon(CURL *curl, JTB::Str& ip) {
+bool IPs::testForDenon(JTB::Str& ip, Curl& curl) {
     JTB::Str buffer {};
     try {
 	JTB::Str denonTest { "http://" + ip + "/MainZone/index.html" };
-	curl_execute(curl, buffer, denonTest);
-    } catch (std::runtime_error e) {
+	curl.curl_execute(buffer, denonTest);
+    } catch (std::runtime_error& e) {
 	if (std::string(e.what()).find("Couldn't connect") == std::string::npos) throw e;
     }
 
@@ -134,7 +135,7 @@ bool testForDenon(CURL *curl, JTB::Str& ip) {
 }
 
 
-void IPs::setIPs(Display& display) {
+void IPs::setIPs(Display& display, Curl& curl) {
     display.displayMessage("Getting ips...");
     JTB::Str pingOutput { getOutputFromShellCommand("timeout 7 ping -b 192.168.1.255 2> /dev/null") };
     pingOutput.push(getOutputFromShellCommand("nmap -sP 192.168.1.0/24 2> /dev/null"));
@@ -174,37 +175,43 @@ void IPs::setIPs(Display& display) {
     });
 
     display.displayMessage("Checking ips for roku & denon response...");
-    std::unique_ptr<CURL, decltype(&curl_easy_cleanup)> curl(curl_easy_init(), curl_easy_cleanup);
+
     for (int i = 0; !found && i < ips.size(); ++i) {
 	if (!found.roku) {
 	    try {
-		found.roku = testForRoku(curl.get(), ips.at(i));
-	    } catch (std::runtime_error e) {
-		display.displayMessage("Roku Test Error: ");
+		found.roku = testForRoku(ips.at(i), curl);
+	    } catch (std::runtime_error& e) {
+		display.displayMessage("Roku Test Error for IP " + ips.at(i) + ": ");
 		display.displayMessage(e.what());
 	    }  
 	    if (found.roku) { 
 		roku = ips.at(i); 
 		display.displayMessage("Roku found.");
-		/* if (debugmode == DEBUGMODE::ON) { printw("%s\n", roku.c_str()); } */
+		
+		const JTB::Str home { std::getenv("HOME") };
+		std::ofstream rokuDotEnvFile { home.concat("/.rokuip").c_str() };
+		rokuDotEnvFile << roku;
 	    }
 	} 
 	if (!found.denon) {
 	    try {
-		found.denon = testForDenon(curl.get(), ips.at(i));
-	    } catch (std::runtime_error e) {
-		display.displayMessage("Denon Test Error: ");
+		found.denon = testForDenon(ips.at(i), curl);
+	    } catch (std::runtime_error& e) {
+		display.displayMessage("Denon Test Error for IP " + ips.at(i) + ": ");
 		display.displayMessage(e.what());
 	    }  
 	    if (found.denon) { 
 		denon = ips.at(i); 
 		display.displayMessage("Denon found.");
-		/* if (debugmode == DEBUGMODE::ON) { printw("%s\n", denon.c_str()); } */
+
+		const JTB::Str home { std::getenv("HOME") };
+		std::ofstream denonDotEnvFile { home.concat("/.denonip").c_str() };
+		denonDotEnvFile << denon;
 	    }
 	} 
     }
     display.displayMessage("Done testing.");
     display.clearMessages(3000);
-    if (!found.roku) throw std::runtime_error("Couldn't find the Roku.");
-    if (!found.denon) throw std::runtime_error("Couldn't find the AVR.");
+    if (!found.roku) throw std::runtime_error("Roku not found.");
+    if (!found.denon) throw std::runtime_error("Denon not found.");
 }
