@@ -55,11 +55,11 @@ struct Denon_control {
     }
 
     bool ipIsStored() const {
-	return ip.startsWith("192.168.1.");
+	return ip.startsWith(IPs::ipstart);
     }
 
     void setIP(JTB::Str inputIP) {
-	if (!inputIP.startsWith("192.168.1.")) {
+	if (!inputIP.startsWith(IPs::ipstart)) {
 	    throw std::runtime_error("Tried to store improper IP in Denon control.");
 	}
 	ip = inputIP;
@@ -117,7 +117,7 @@ struct Roku_query {
     }
 
     void setIP(const JTB::Str& ipInput) {
-	if (!ipInput.startsWith("192.168.1.")) {
+	if (!ipInput.startsWith(IPs::ipstart)) {
 	    throw std::runtime_error("Tried to store improper IP in Roku_query.");
 	}
 	ip = ipInput;
@@ -136,7 +136,7 @@ struct Roku_query {
     }
 
     bool ipIsStored() const {
-	return ip.startsWith("192.168.1.");
+	return ip.startsWith(IPs::ipstart);
     }
 
 private: 
@@ -371,7 +371,7 @@ int main(int argc, char **argv) {
 	"- => volume down",
 	"m => mute",
 	"Ctrl+l => toggle literal input",
-	"\\ => reset ips"
+	"\\ => reset & confirm ips"
     };
 
     Display display(staticDisplay);
@@ -382,8 +382,8 @@ int main(int argc, char **argv) {
     IPs ips(display, curl);
     Roku_query roku(ips.getRoku(), display);
     Denon_control denon(ips.getDenon(), display);
-    if (roku.ipIsStored() && denon.ipIsStored()) display.displayMessage("Roku and denon control established.");
-    else display.displayMessage("Missing some control.");
+    if (roku.ipIsStored() && denon.ipIsStored()) display.displayMessage("Roku and denon IPs are set.");
+    else display.displayMessage("Missing some IP.");
     display.clearMessages(1500);
     LiteralMode literalmode;
     char ch;
