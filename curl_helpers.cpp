@@ -136,6 +136,8 @@ bool IPs::testForDenon(JTB::Str& ip, Curl& curl) {
 
 
 void IPs::setIPs(Display& display, Curl& curl) {
+    roku = "";
+    denon = "";
     display.displayMessage("Getting ips...");
     JTB::Str pingOutput { getOutputFromShellCommand("timeout 7 ping -b 192.168.1.255 2> /dev/null") };
     pingOutput.push(getOutputFromShellCommand("nmap -sP 192.168.1.0/24 2> /dev/null"));
