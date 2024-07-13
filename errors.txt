@@ -12,8 +12,8 @@ curl_helpers.cpp:36:44: warning: ignoring attributes on template argument ‘int
    36 |     std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd, "r"), pclose);
       |                                            ^
 curl_helpers.cpp: In member function ‘void IPs::setIPs(Display&, Curl&)’:
-curl_helpers.cpp:180:35: warning: comparison of integer expressions of different signedness: ‘int’ and ‘long unsigned int’ [-Wsign-compare]
-  180 |     for (int i = 0; !found() && i < ips.size(); ++i) {
+curl_helpers.cpp:236:35: warning: comparison of integer expressions of different signedness: ‘int’ and ‘long unsigned int’ [-Wsign-compare]
+  236 |     for (int i = 0; !found() && i < ips.size(); ++i) {
       |                                 ~~^~~~~~~~~~~~
 In file included from ./curl_helpers.h:9,
                  from rokuctrl.cpp:24:
