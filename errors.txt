@@ -12,12 +12,12 @@ curl_helpers.cpp:38:44: warning: ignoring attributes on template argument ‘int
    38 |     std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd.c_str(), "r"), pclose);
       |                                            ^
 curl_helpers.cpp: In static member function ‘static bool IPs::testForBroadlink(const JTB::Str&, Curl&)’:
-curl_helpers.cpp:110:54: warning: unused parameter ‘curl’ [-Wunused-parameter]
-  110 | bool IPs::testForBroadlink(const JTB::Str& ip, Curl& curl) {
+curl_helpers.cpp:105:54: warning: unused parameter ‘curl’ [-Wunused-parameter]
+  105 | bool IPs::testForBroadlink(const JTB::Str& ip, Curl& curl) {
       |                                                ~~~~~~^~~~
 curl_helpers.cpp: In member function ‘void IPs::setIPs(Display&, Curl&)’:
-curl_helpers.cpp:301:35: warning: comparison of integer expressions of different signedness: ‘int’ and ‘long unsigned int’ [-Wsign-compare]
-  301 |     for (int i = 0; !found() && i < ips.size(); ++i) {
+curl_helpers.cpp:295:35: warning: comparison of integer expressions of different signedness: ‘int’ and ‘long unsigned int’ [-Wsign-compare]
+  295 |     for (int i = 0; !found() && i < ips.size(); ++i) {
       |                                 ~~^~~~~~~~~~~~
 In file included from ./curl_helpers.h:9,
                  from rokuctrl.cpp:24:

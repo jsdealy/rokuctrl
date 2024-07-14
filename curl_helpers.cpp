@@ -85,7 +85,7 @@ void Curl::curl_execute(JTB::Str& readBuffer,
     // Pass our 'readBuffer' to the callback function
     curl_easy_setopt(curlpointer, CURLOPT_WRITEDATA, &readBuffer);
 
-    curl_easy_setopt(curlpointer, CURLOPT_TIMEOUT, 3L);  // timeout after 3 seconds
+    curl_easy_setopt(curlpointer, CURLOPT_TIMEOUT, 5L);  // timeout after 5 seconds
 
     curl_easy_setopt(curlpointer, CURLOPT_CONNECTTIMEOUT, 10L);  // connection timeout after 5 seconds
 
@@ -100,11 +100,6 @@ void Curl::curl_execute(JTB::Str& readBuffer,
 	/* std::cerr << "curl_easy_perform() failed: " << curl_easy_strerror(res) << std::endl; */
 	throw std::runtime_error(curl_easy_strerror(res));
     } 
-
-    std::regex re { R"([^\s])" };
-
-    if (debugmode == DEBUGMODE::ON && std::regex_search(readBuffer.stdstr(), re)) 
-	printw("%s\n", readBuffer.c_str());
 }
 
 bool IPs::testForBroadlink(const JTB::Str& ip, Curl& curl) {
@@ -171,7 +166,6 @@ bool IPs::handleBroadlinkRemote(const JTB::Str& ip, Curl& curl, Display& display
     try {
 	if (testForBroadlink(ip, curl)) { 
 	    display.displayMessage("Broadlink found.");
-
 	    const JTB::Str home { std::getenv("HOME") };
 	    std::ofstream broadlinkIPFile { home.concat("/.broadlinkIP").c_str() };
 	    broadlinkIPFile << ip;
