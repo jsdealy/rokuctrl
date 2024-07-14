@@ -10,6 +10,8 @@
 #include "jtb/jtbstr.h"
 #include "jtb/jtbvec.h"
 #include <fstream>
+#include <thread>
+
 
 
 enum class HTTP_MODE { GET, POST };
@@ -21,7 +23,7 @@ bool inVec(std::vector<T>& vec, T&& target);
 
 std::string url_encode(const std::string value); 
 
-std::string getOutputFromShellCommand(const char* cmd); 
+std::string getOutputFromShellCommand(const JTB::Str cmd); 
 
 class Curl {
     CURL* curlpointer;
@@ -109,11 +111,14 @@ struct IPs {
 
     static bool testForDenon(const JTB::Str&, Curl&);
 
+    static bool testForBroadlink(const JTB::Str&, Curl&);
+
     constexpr static const char* const ipstart { "192.168." };
 
 private: 
     bool testAndHandleRoku(const JTB::Str&, Curl&, Display&);
     bool testAndHandleDenon(const JTB::Str&, Curl&, Display&);
+    bool handleBroadlinkRemote(const JTB::Str&, Curl&, Display&);
 
     JTB::Str denon;
     JTB::Str roku;

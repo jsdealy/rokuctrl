@@ -218,7 +218,7 @@ struct LiteralMode {
 		}
 		JTB::ClCommand callToPythonBlurayC("blurayC.py back");
 		display.flashMessage(callToPythonBlurayC.getResult().first.stdstr());
-		std::this_thread::sleep_for(std::chrono::milliseconds(600));
+		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 		callToPythonBlurayC.sendCommand("blurayC.py right");
 		display.flashMessage(callToPythonBlurayC.getResult().first.stdstr());
 		std::this_thread::sleep_for(std::chrono::milliseconds(600));
@@ -284,15 +284,15 @@ void handle_keypress(Curl& curl,
 		     Display& display) {
 
     switch (key) {
-	case '': {
-	    literalmode.toggle(display);
-	    break;
-	}
+	case '': literalmode.toggle(display); break;
 	case '\\': try { 
-		ips.setIPs(display, curl); 
-		roku.setIP(ips.getRoku()); 
-		denon.setIP(ips.getDenon());
-	    } catch (std::runtime_error& e) { display.flashMessage(e.what()); };
+			ips.setIPs(display, curl); 
+			roku.setIP(ips.getRoku()); 
+			denon.setIP(ips.getDenon());
+		    } 
+		    catch (std::runtime_error& e) { 
+			display.displayMessage(e.what()); 
+		    } break;
 	case 'X': literalmode.handle(curl, roku, "X", LiteralMode::KeyType::BLURAYSOUNDON, "", display); break;
 	case 'A': literalmode.handle(curl, roku, "A", LiteralMode::KeyType::BLURAYCOMMAND, "play", display); break;
 	case 'P': literalmode.handle(curl, roku, "P", LiteralMode::KeyType::BLURAYCOMMAND, "tvpower", display); break;

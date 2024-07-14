@@ -22,6 +22,7 @@
 
 
 
+
 DEBUGMODE debugmode = DEBUGMODE::OFF;
 
 template <typename T>
@@ -30,10 +31,11 @@ bool inVec(std::vector<T>& vec, T&& target) {
     return false;
 }
 
-std::string getOutputFromShellCommand(const char* cmd) {
+std::string getOutputFromShellCommand(const JTB::Str cmd) {
+
     std::array<char, 128> buffer;
     std::string result;
-    std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd, "r"), pclose);
+    std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd.c_str(), "r"), pclose);
     if (!pipe) {
         throw std::runtime_error("popen() failed!");
     }
@@ -105,6 +107,18 @@ void Curl::curl_execute(JTB::Str& readBuffer,
 	printw("%s\n", readBuffer.c_str());
 }
 
+bool IPs::testForBroadlink(const JTB::Str& ip, Curl& curl) {
+    JTB::Str buffer {};
+    const JTB::Str home { std::getenv("HOME") };
+    JTB::Str command {"blurayTest.py "};
+    getOutputFromShellCommand(command.concat(ip).concat(" > ").concat(home).concat("/.blurayOutput"));
+    std::this_thread::sleep_for(std::chrono::milliseconds(3500));
+    std::ifstream blurayOutputFile {home.concat("/.blurayOutput").c_str()};
+    buffer.absorb(blurayOutputFile);
+    if (buffer.lower().boolFind("device found")) 
+	return true;
+    return false;
+}
 
 bool IPs::testForRoku(const JTB::Str& ip, Curl& curl) {
     JTB::Str buffer {};
@@ -153,6 +167,24 @@ bool IPs::testAndHandleRoku(const JTB::Str& ip, Curl& curl, Display& display) {
     return false;
 }
 
+bool IPs::handleBroadlinkRemote(const JTB::Str& ip, Curl& curl, Display& display) {
+    try {
+	if (testForBroadlink(ip, curl)) { 
+	    display.displayMessage("Broadlink found.");
+
+	    const JTB::Str home { std::getenv("HOME") };
+	    std::ofstream broadlinkIPFile { home.concat("/.broadlinkIP").c_str() };
+	    broadlinkIPFile << ip;
+	    return true;
+	}
+    } 
+    catch (std::runtime_error& e) {
+	display.displayMessage("Broadlink Test Error for IP " + ip + ": ");
+	display.displayMessage(e.what());
+    }  
+    return false;
+}
+
 bool IPs::testAndHandleDenon(const JTB::Str& ip, Curl& curl, Display& display) {
     try {
 	if (testForDenon(ip, curl)) { 
@@ -177,25 +209,58 @@ void IPs::setIPs(Display& display, Curl& curl) {
     roku = "";
     denon = "";
     display.displayMessage("Getting ips...");
-    JTB::Str pingOutput { getOutputFromShellCommand("timeout 3 ping -b 192.168.1.255 2> /dev/null") };
-    pingOutput.push(getOutputFromShellCommand("nmap -sP 192.168.1.0/24 2> /dev/null"));
+    const JTB::Str home { std::getenv("HOME") };
+    getOutputFromShellCommand("nmap -sP 192.168.1.0/24 > " + home.concat("/.nmap"));
+    std::this_thread::sleep_for(std::chrono::milliseconds(5100));
+    JTB::Str pingOutput { getOutputFromShellCommand("timeout 5 ping -b 192.168.1.255 2> /dev/null") };
+    std::ifstream nmapFile { home.concat("/.nmap").c_str() };
+    if (!nmapFile) {
+	throw std::runtime_error("Couldn't open the nmap file! (Somehow out of memory?!)");
+	exit(1);
+    }
+    std::string linebuffer {};
+    while (nmapFile.good()) {
+	std::getline(nmapFile, linebuffer);
+	pingOutput.push(linebuffer);
+    }
     display.displayMessage("Extracting ips from ping and nmap output...");
+    /* lowercasing ping output <- 07/13/24 19:53:51 */ 
     pingOutput = pingOutput.lower();
+    /* saving pingOutput to file for error checking <- 07/13/24 20:47:23 */ 
+    std::ofstream pingOutputFile { home.concat("/.pingOutput").c_str() };
+    pingOutputFile << pingOutput;
 
     /* quick and dirty preliminary test before going through all the IPs <- 07/12/24 21:25:44 */ 
-    if (int loc = pingOutput.find("D94C1A0") != JTB::Str::NPOS) {
-	JTB::Str testIP = pingOutput.substr(pingOutput.find("192.", loc)).substrInBounds("(",")",JTB::Str::Bounds::EXC);
+    if (pingOutput.find("d94c1") != JTB::Str::NPOS) {
+	JTB::Str subTestIP = pingOutput.substr(pingOutput.find("d94c1"));
+	JTB::Str testIP = subTestIP.substrInBounds('(',')',1,1,JTB::Str::Bounds::EXC);
+	display.displayMessage("Testing for Denon: " + testIP);
 	if (testIP.startsWith(IPs::ipstart)) {
-	    testAndHandleDenon(testIP,curl,display);
+	    int count {0};
+	    while (count++ < 10 && !testAndHandleDenon(testIP,curl,display)); 
 	}
     }
-    if (int loc = pingOutput.find("roku") != JTB::Str::NPOS) {
-	JTB::Str testIP = pingOutput.substr(pingOutput.find("192.", loc)).substrInBounds("(",")",JTB::Str::Bounds::EXC);
+    if (pingOutput.find("roku") != JTB::Str::NPOS) {
+	JTB::Str testIP = pingOutput.substr(pingOutput.find("roku")).substrInBounds('(',')',1,1,JTB::Str::Bounds::EXC);
+	display.displayMessage("Testing for Roku: " + testIP);
 	if (testIP.startsWith(IPs::ipstart)) {
-	    testAndHandleRoku(testIP,curl,display);
+	    int count {0};
+	    while (count++ < 10 && !testAndHandleRoku(testIP,curl,display)); 
 	}
     }
-    if (found()) return;
+    if (pingOutput.find("broadlink") != JTB::Str::NPOS) {
+	JTB::Str testIP = pingOutput.substr(pingOutput.find("broadlink")).substrInBounds('(',')',1,1,JTB::Str::Bounds::EXC);
+	display.displayMessage("Testing for Broadlink: " + testIP);
+	if (testIP.startsWith(IPs::ipstart)) {
+	    int count {0};
+	    while (count++ < 10 && !handleBroadlinkRemote(testIP,curl,display)); 
+	}
+    }
+    if (found()) { 
+	display.displayMessage("Roku and denon found.");
+	display.clearMessages(3000);
+	return; 
+    }
 
     /* okay now we go through them all <- 07/12/24 21:26:00 */ 
     pingOutput = pingOutput.filter([](const char c) -> bool {
