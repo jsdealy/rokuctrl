@@ -16,8 +16,8 @@ curl_helpers.cpp:105:54: warning: unused parameter ‘curl’ [-Wunused-paramete
   105 | bool IPs::testForBroadlink(const JTB::Str& ip, Curl& curl) {
       |                                                ~~~~~~^~~~
 curl_helpers.cpp: In member function ‘void IPs::setIPs(Display&, Curl&)’:
-curl_helpers.cpp:295:35: warning: comparison of integer expressions of different signedness: ‘int’ and ‘long unsigned int’ [-Wsign-compare]
-  295 |     for (int i = 0; !found() && i < ips.size(); ++i) {
+curl_helpers.cpp:298:35: warning: comparison of integer expressions of different signedness: ‘int’ and ‘long unsigned int’ [-Wsign-compare]
+  298 |     for (int i = 0; !found() && i < ips.size(); ++i) {
       |                                 ~~^~~~~~~~~~~~
 In file included from ./curl_helpers.h:9,
                  from rokuctrl.cpp:24:

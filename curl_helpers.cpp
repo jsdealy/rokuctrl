@@ -156,8 +156,9 @@ bool IPs::testAndHandleRoku(const JTB::Str& ip, Curl& curl, Display& display) {
 	}
     } 
     catch (std::runtime_error& e) {
-	display.flashMessage("Roku Test Error for IP " + ip + ": ");
-	display.flashMessage(e.what());
+	JTB::Str errorMessage {"Roku Test Error for IP " + ip + ": "};
+	errorMessage.push("\n").push(e.what());
+	display.flashMessage(errorMessage, 1000);
     }  
     return false;
 }
@@ -173,8 +174,9 @@ bool IPs::handleBroadlinkRemote(const JTB::Str& ip, Curl& curl, Display& display
 	}
     } 
     catch (std::runtime_error& e) {
-	display.displayMessage("Broadlink Test Error for IP " + ip + ": ");
-	display.displayMessage(e.what());
+	JTB::Str errorMessage {"Broadlink Test Error for IP " + ip + ": "};
+	errorMessage.push("\n").push(e.what());
+	display.flashMessage(errorMessage, 1000);
     }  
     return false;
 }
@@ -192,8 +194,9 @@ bool IPs::testAndHandleDenon(const JTB::Str& ip, Curl& curl, Display& display) {
 	}
     } 
     catch (std::runtime_error& e) {
-	display.flashMessage("Denon Test Error for IP " + ip + ": ");
-	display.flashMessage(e.what());
+	JTB::Str errorMessage {"Denon Test Error for IP " + ip + ": "};
+	errorMessage.push("\n").push(e.what());
+	display.flashMessage(errorMessage, 1000);
     }  
     return false;
 } 
