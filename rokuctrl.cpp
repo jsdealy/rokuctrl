@@ -294,7 +294,9 @@ void handle_keypress(Curl& curl,
 			display.displayMessage(e.what()); 
 		    } break;
 	case 'X': literalmode.handle(curl, roku, "X", LiteralMode::KeyType::BLURAYSOUNDON, "", display); break;
-	case 'A': literalmode.handle(curl, roku, "A", LiteralMode::KeyType::BLURAYCOMMAND, "play", display); break;
+	case '8': literalmode.handle(curl, roku, "8", LiteralMode::KeyType::BLURAYCOMMAND, "stripon", display); break;
+	case '9': literalmode.handle(curl, roku, "9", LiteralMode::KeyType::BLURAYCOMMAND, "stripoff", display); break;
+	case '0': literalmode.handle(curl, roku, "0", LiteralMode::KeyType::BLURAYCOMMAND, "striporange", display); break;
 	case 'P': literalmode.handle(curl, roku, "P", LiteralMode::KeyType::BLURAYCOMMAND, "tvpower", display); break;
 	case 'U': literalmode.handle(curl, roku, "U", LiteralMode::KeyType::BLURAYCOMMAND, "bluraypower", display); break;
 	case 'S': literalmode.handle(curl, roku, "S", LiteralMode::KeyType::BLURAYCOMMAND, "pause", display); break;
