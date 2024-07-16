@@ -7,18 +7,14 @@ In file included from curl_helpers.h:9,
 ./display.h:34:32: warning: comparison of integer expressions of different signedness: ‘int’ and ‘std::__cxx11::basic_string<char>::size_type’ {aka ‘long unsigned int’} [-Wsign-compare]
    34 |             for (auto i = 0; i < longestPersistentLine - s.length(); i++) {
       |                              ~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-curl_helpers.cpp: In function ‘std::string getOutputFromShellCommand(JTB::Str)’:
-curl_helpers.cpp:38:44: warning: ignoring attributes on template argument ‘int (*)(FILE*)’ [-Wignored-attributes]
-   38 |     std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd.c_str(), "r"), pclose);
+curl_helpers.cpp: In function ‘std::string getOutputFromShellCommand(const char*)’:
+curl_helpers.cpp:36:44: warning: ignoring attributes on template argument ‘int (*)(FILE*)’ [-Wignored-attributes]
+   36 |     std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd, "r"), pclose);
       |                                            ^
-curl_helpers.cpp: In static member function ‘static bool IPs::testForBroadlink(const JTB::Str&, Curl&)’:
-curl_helpers.cpp:105:54: warning: unused parameter ‘curl’ [-Wunused-parameter]
-  105 | bool IPs::testForBroadlink(const JTB::Str& ip, Curl& curl) {
-      |                                                ~~~~~~^~~~
 curl_helpers.cpp: In member function ‘void IPs::setIPs(Display&, Curl&)’:
-curl_helpers.cpp:298:35: warning: comparison of integer expressions of different signedness: ‘int’ and ‘long unsigned int’ [-Wsign-compare]
-  298 |     for (int i = 0; !found() && i < ips.size(); ++i) {
-      |                                 ~~^~~~~~~~~~~~
+curl_helpers.cpp:179:33: warning: comparison of integer expressions of different signedness: ‘int’ and ‘long unsigned int’ [-Wsign-compare]
+  179 |     for (int i = 0; !found && i < ips.size(); ++i) {
+      |                               ~~^~~~~~~~~~~~
 In file included from ./curl_helpers.h:9,
                  from rokuctrl.cpp:24:
 ././display.h: In constructor ‘Display::Display(std::vector<std::__cxx11::basic_string<char> >)’:
@@ -39,6 +35,13 @@ rokuctrl.cpp:115:5: warning:   when initialized here [-Wreorder]
   115 |     Roku_query(const JTB::Str& ip_input, Display& display): ip(ip_input), readBuffer("") {
       |     ^~~~~~~~~~
 rokuctrl.cpp: In function ‘int main(int, char**)’:
-rokuctrl.cpp:395:37: warning: catching polymorphic type ‘class std::runtime_error’ by value [-Wcatch-value=]
-  395 |         } catch (std::runtime_error e) {
+rokuctrl.cpp:393:37: warning: catching polymorphic type ‘class std::runtime_error’ by value [-Wcatch-value=]
+  393 |         } catch (std::runtime_error e) {
       |                                     ^
+rokuctrl.cpp: In function ‘void handle_keypress(Curl&, LiteralMode&, char, Roku_query&, Denon_control&, IPs&, Display&)’:
+rokuctrl.cpp:294:41: warning: this statement may fall through [-Wimplicit-fallthrough=]
+  294 |                 denon.setIP(ips.getDenon());
+      |                             ~~~~~~~~~~~~^~
+rokuctrl.cpp:296:9: note: here
+  296 |         case 'X': literalmode.handle(curl, roku, "X", LiteralMode::KeyType::BLURAYSOUNDON, "", display); break;
+      |         ^~~~

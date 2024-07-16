@@ -49,7 +49,7 @@ public:
 	endwin();
     }
 
-    void flashMessage(JTB::Str s, int milliseconds = 250) {
+    void flashMessage(std::string s, int milliseconds = 250) {
 	printw(" %s\n", s.c_str());
 	refresh();
 	/* sleep for milliseconds <= 01/13/24 13:27:21 */ 

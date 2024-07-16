@@ -22,7 +22,6 @@
 
 
 
-
 DEBUGMODE debugmode = DEBUGMODE::OFF;
 
 template <typename T>
@@ -31,11 +30,10 @@ bool inVec(std::vector<T>& vec, T&& target) {
     return false;
 }
 
-std::string getOutputFromShellCommand(const JTB::Str cmd) {
-
+std::string getOutputFromShellCommand(const char* cmd) {
     std::array<char, 128> buffer;
     std::string result;
-    std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd.c_str(), "r"), pclose);
+    std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd, "r"), pclose);
     if (!pipe) {
         throw std::runtime_error("popen() failed!");
     }
@@ -85,7 +83,7 @@ void Curl::curl_execute(JTB::Str& readBuffer,
     // Pass our 'readBuffer' to the callback function
     curl_easy_setopt(curlpointer, CURLOPT_WRITEDATA, &readBuffer);
 
-    curl_easy_setopt(curlpointer, CURLOPT_TIMEOUT, 5L);  // timeout after 5 seconds
+    curl_easy_setopt(curlpointer, CURLOPT_TIMEOUT, 3L);  // timeout after 3 seconds
 
     curl_easy_setopt(curlpointer, CURLOPT_CONNECTTIMEOUT, 10L);  // connection timeout after 5 seconds
 
@@ -100,22 +98,15 @@ void Curl::curl_execute(JTB::Str& readBuffer,
 	/* std::cerr << "curl_easy_perform() failed: " << curl_easy_strerror(res) << std::endl; */
 	throw std::runtime_error(curl_easy_strerror(res));
     } 
+
+    std::regex re { R"([^\s])" };
+
+    if (debugmode == DEBUGMODE::ON && std::regex_search(readBuffer.stdstr(), re)) 
+	printw("%s\n", readBuffer.c_str());
 }
 
-bool IPs::testForBroadlink(const JTB::Str& ip, Curl& curl) {
-    JTB::Str buffer {};
-    const JTB::Str home { std::getenv("HOME") };
-    JTB::Str command {"blurayTest.py "};
-    getOutputFromShellCommand(command.concat(ip).concat(" > ").concat(home).concat("/.blurayOutput"));
-    std::this_thread::sleep_for(std::chrono::milliseconds(3500));
-    std::ifstream blurayOutputFile {home.concat("/.blurayOutput").c_str()};
-    buffer.absorb(blurayOutputFile);
-    if (buffer.lower().boolFind("device found")) 
-	return true;
-    return false;
-}
 
-bool IPs::testForRoku(const JTB::Str& ip, Curl& curl) {
+bool IPs::testForRoku(JTB::Str& ip, Curl& curl) {
     JTB::Str buffer {};
     try {
 	JTB::Str rokuQuery { "http://" + ip + ":8060/query/media-player" };
@@ -129,9 +120,9 @@ bool IPs::testForRoku(const JTB::Str& ip, Curl& curl) {
     return false;
 }
 
-bool IPs::testForDenon(const JTB::Str& ip, Curl& curl) {
+bool IPs::testForDenon(JTB::Str& ip, Curl& curl) {
     JTB::Str buffer {};
-    try { 
+    try {
 	JTB::Str denonTest { "http://" + ip + "/MainZone/index.html" };
 	curl.curl_execute(buffer, denonTest);
     } catch (std::runtime_error& e) {
@@ -143,123 +134,13 @@ bool IPs::testForDenon(const JTB::Str& ip, Curl& curl) {
     return false;
 }
 
-bool IPs::testAndHandleRoku(const JTB::Str& ip, Curl& curl, Display& display) {
-    try {
-	if (testForRoku(ip, curl)) { 
-	    roku = ip;
-	    display.displayMessage("Roku found.");
-
-	    const JTB::Str home { std::getenv("HOME") };
-	    std::ofstream rokuDotEnvFile { home.concat("/.rokuip").c_str() };
-	    rokuDotEnvFile << roku;
-	    return true;
-	}
-    } 
-    catch (std::runtime_error& e) {
-	JTB::Str errorMessage {"Roku Test Error for IP " + ip + ": "};
-	errorMessage.push("\n").push(e.what());
-	display.flashMessage(errorMessage, 1000);
-    }  
-    return false;
-}
-
-bool IPs::handleBroadlinkRemote(const JTB::Str& ip, Curl& curl, Display& display) {
-    try {
-	if (testForBroadlink(ip, curl)) { 
-	    display.displayMessage("Broadlink found.");
-	    const JTB::Str home { std::getenv("HOME") };
-	    std::ofstream broadlinkIPFile { home.concat("/.broadlinkIP").c_str() };
-	    broadlinkIPFile << ip;
-	    return true;
-	}
-    } 
-    catch (std::runtime_error& e) {
-	JTB::Str errorMessage {"Broadlink Test Error for IP " + ip + ": "};
-	errorMessage.push("\n").push(e.what());
-	display.flashMessage(errorMessage, 1000);
-    }  
-    return false;
-}
-
-bool IPs::testAndHandleDenon(const JTB::Str& ip, Curl& curl, Display& display) {
-    try {
-	if (testForDenon(ip, curl)) { 
-	    denon = ip; 
-	    display.displayMessage("Denon found.");
-
-	    const JTB::Str home { std::getenv("HOME") };
-	    std::ofstream denonDotEnvFile { home.concat("/.denonip").c_str() };
-	    denonDotEnvFile << denon;
-	    return true;
-	}
-    } 
-    catch (std::runtime_error& e) {
-	JTB::Str errorMessage {"Denon Test Error for IP " + ip + ": "};
-	errorMessage.push("\n").push(e.what());
-	display.flashMessage(errorMessage, 1000);
-    }  
-    return false;
-} 
-
 
 void IPs::setIPs(Display& display, Curl& curl) {
-    roku = "";
-    denon = "";
     display.displayMessage("Getting ips...");
-    const JTB::Str home { std::getenv("HOME") };
-    getOutputFromShellCommand("nmap -sP 192.168.1.0/24 > " + home.concat("/.nmap"));
-    std::this_thread::sleep_for(std::chrono::milliseconds(5100));
-    JTB::Str pingOutput { getOutputFromShellCommand("timeout 5 ping -b 192.168.1.255 2> /dev/null") };
-    std::ifstream nmapFile { home.concat("/.nmap").c_str() };
-    if (!nmapFile) {
-	throw std::runtime_error("Couldn't open the nmap file! (Somehow out of memory?!)");
-	exit(1);
-    }
-    std::string linebuffer {};
-    while (nmapFile.good()) {
-	std::getline(nmapFile, linebuffer);
-	pingOutput.push(linebuffer);
-    }
+    JTB::Str pingOutput { getOutputFromShellCommand("timeout 7 ping -b 192.168.1.255 2> /dev/null") };
+    pingOutput.push(getOutputFromShellCommand("nmap -sP 192.168.1.0/24 2> /dev/null"));
     display.displayMessage("Extracting ips from ping and nmap output...");
-    /* lowercasing ping output <- 07/13/24 19:53:51 */ 
-    pingOutput = pingOutput.lower();
-    /* saving pingOutput to file for error checking <- 07/13/24 20:47:23 */ 
-    std::ofstream pingOutputFile { home.concat("/.pingOutput").c_str() };
-    pingOutputFile << pingOutput;
-
-    /* quick and dirty preliminary test before going through all the IPs <- 07/12/24 21:25:44 */ 
-    if (pingOutput.find("d94c1") != JTB::Str::NPOS) {
-	JTB::Str subTestIP = pingOutput.substr(pingOutput.find("d94c1"));
-	JTB::Str testIP = subTestIP.substrInBounds('(',')',1,1,JTB::Str::Bounds::EXC);
-	display.displayMessage("Testing for Denon: " + testIP);
-	if (testIP.startsWith(IPs::ipstart)) {
-	    int count {0};
-	    while (count++ < 10 && !testAndHandleDenon(testIP,curl,display)); 
-	}
-    }
-    if (pingOutput.find("roku") != JTB::Str::NPOS) {
-	JTB::Str testIP = pingOutput.substr(pingOutput.find("roku")).substrInBounds('(',')',1,1,JTB::Str::Bounds::EXC);
-	display.displayMessage("Testing for Roku: " + testIP);
-	if (testIP.startsWith(IPs::ipstart)) {
-	    int count {0};
-	    while (count++ < 10 && !testAndHandleRoku(testIP,curl,display)); 
-	}
-    }
-    if (pingOutput.find("broadlink") != JTB::Str::NPOS) {
-	JTB::Str testIP = pingOutput.substr(pingOutput.find("broadlink")).substrInBounds('(',')',1,1,JTB::Str::Bounds::EXC);
-	display.displayMessage("Testing for Broadlink: " + testIP);
-	if (testIP.startsWith(IPs::ipstart)) {
-	    int count {0};
-	    while (count++ < 10 && !handleBroadlinkRemote(testIP,curl,display)); 
-	}
-    }
-    if (found()) { 
-	display.displayMessage("Roku and denon found.");
-	display.clearMessages(3000);
-	return; 
-    }
-
-    /* okay now we go through them all <- 07/12/24 21:26:00 */ 
+    /* std::regex re { R"(192\.168\.1\.[\d]{1,3})" }; */
     pingOutput = pingOutput.filter([](const char c) -> bool {
 	JTB::Str charsInIpAddresses { "123456789." };
 	return charsInIpAddresses.boolFind(c);
@@ -273,7 +154,7 @@ void IPs::setIPs(Display& display, Curl& curl) {
 	i = endOfIP;
     }
     ips = ips.filter([](JTB::Str s) {
-	return s.startsWith(IPs::ipstart);
+	return s.startsWith("192.168.1.");
     });
     ips = ips.map<JTB::Str>([](JTB::Str s) -> JTB::Str {
 	return s.slice(0,13);
@@ -295,16 +176,42 @@ void IPs::setIPs(Display& display, Curl& curl) {
 
     display.displayMessage("Checking ips for roku & denon response...");
 
-    for (int i = 0; !found() && i < ips.size(); ++i) {
-	if (!rokuFound()) {
-	    testAndHandleRoku(ips.at(i),curl,display);
+    for (int i = 0; !found && i < ips.size(); ++i) {
+	if (!found.roku) {
+	    try {
+		found.roku = testForRoku(ips.at(i), curl);
+	    } catch (std::runtime_error& e) {
+		display.displayMessage("Roku Test Error for IP " + ips.at(i) + ": ");
+		display.displayMessage(e.what());
+	    }  
+	    if (found.roku) { 
+		roku = ips.at(i); 
+		display.displayMessage("Roku found.");
+		
+		const JTB::Str home { std::getenv("HOME") };
+		std::ofstream rokuDotEnvFile { home.concat("/.rokuip").c_str() };
+		rokuDotEnvFile << roku;
+	    }
 	} 
-	if (!denonFound()) {
-	    testAndHandleDenon(ips.at(i),curl,display);
+	if (!found.denon) {
+	    try {
+		found.denon = testForDenon(ips.at(i), curl);
+	    } catch (std::runtime_error& e) {
+		display.displayMessage("Denon Test Error for IP " + ips.at(i) + ": ");
+		display.displayMessage(e.what());
+	    }  
+	    if (found.denon) { 
+		denon = ips.at(i); 
+		display.displayMessage("Denon found.");
+
+		const JTB::Str home { std::getenv("HOME") };
+		std::ofstream denonDotEnvFile { home.concat("/.denonip").c_str() };
+		denonDotEnvFile << denon;
+	    }
 	} 
     }
     display.displayMessage("Done testing.");
     display.clearMessages(3000);
-    if (!roku.startsWith(IPs::ipstart)) throw std::runtime_error("Roku not found.");
-    if (!denon.startsWith(IPs::ipstart)) throw std::runtime_error("Denon not found.");
+    if (!found.roku) throw std::runtime_error("Roku not found.");
+    if (!found.denon) throw std::runtime_error("Denon not found.");
 }
