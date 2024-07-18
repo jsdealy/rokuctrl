@@ -10,6 +10,8 @@
 #include "jtb/jtbstr.h"
 #include "jtb/jtbvec.h"
 #include <fstream>
+#include <thread>
+
 
 
 enum class HTTP_MODE { GET, POST };
@@ -21,7 +23,7 @@ bool inVec(std::vector<T>& vec, T&& target);
 
 std::string url_encode(const std::string value); 
 
-std::string getOutputFromShellCommand(const char* cmd); 
+std::string getOutputFromShellCommand(const JTB::Str cmd); 
 
 class Curl {
     CURL* curlpointer;
@@ -46,15 +48,19 @@ struct IPs {
 	    JTB::Str home { std::getenv("HOME") };
 	    std::ifstream rokuDotEnv { home.concat("/.rokuip").c_str() };
 	    rokuDotEnv >> roku;
+	    display.displayMessage("Got roku IP from .rokuip: " + roku.stdstr());
 	    std::ifstream denonDotEnv { home.concat("/.denonip").c_str() };
-	    rokuDotEnv >> denon;
+	    denonDotEnv >> denon;
+	    display.displayMessage("Got denon IP from .denonip: " + denon.stdstr());
 	}
 	catch (std::runtime_error& e) {
-	    display.flashMessage(e.what());
+	    display.flashMessage("Some kind of problem with getting .env...");
+	    display.flashMessage(e.what(), 1000);
 	}
-	if (!found) {
+	if (!found()) {
+	    display.flashMessage("Didn't find it in the .envs...", 1000);
 	    int count { 0 };
-	    while (++count < 11 && !found) {
+	    while (++count < 11 && !found()) {
 		try {
 		    setIPs(display, curl);
 		} catch (std::runtime_error& e) {
@@ -65,7 +71,7 @@ struct IPs {
 		    }
 		}
 	    }
-	    if (!found) {
+	    if (!found()) {
 		display.displayMessage("Too many problems...");
 		exit(1);
 	    }
@@ -79,6 +85,18 @@ struct IPs {
 	operator bool() { return roku && denon; }
     };
 
+    bool found() const {
+	return denonFound() && rokuFound();
+    }
+
+    bool denonFound() const {
+	return denon.startsWith(ipstart);
+    }
+
+    bool rokuFound() const {
+	return roku.startsWith(ipstart);
+    }
+
     void setIPs(Display&, Curl&); 
 
     JTB::Str getRoku() {
@@ -89,12 +107,19 @@ struct IPs {
 	return denon;
     };
 
-    static bool testForRoku(JTB::Str&, Curl&); 
+    static bool testForRoku(const JTB::Str&, Curl&); 
 
-    static bool testForDenon(JTB::Str&, Curl&);
+    static bool testForDenon(const JTB::Str&, Curl&);
+
+    static bool testForBroadlink(const JTB::Str&, Curl&);
+
+    constexpr static const char* const ipstart { "192.168." };
 
 private: 
+    bool testAndHandleRoku(const JTB::Str&, Curl&, Display&);
+    bool testAndHandleDenon(const JTB::Str&, Curl&, Display&);
+    bool handleBroadlinkRemote(const JTB::Str&, Curl&, Display&);
+
     JTB::Str denon;
     JTB::Str roku;
-    Found found;
 };
