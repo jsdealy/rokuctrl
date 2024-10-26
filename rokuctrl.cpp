@@ -299,6 +299,7 @@ void handle_keypress(Curl& curl,
 	case '0': literalmode.handle(curl, roku, "0", LiteralMode::KeyType::BLURAYCOMMAND, "yamahapower", display); break;
 	case 'P': literalmode.handle(curl, roku, "P", LiteralMode::KeyType::BLURAYCOMMAND, "tvpower", display); break;
 	case 'U': literalmode.handle(curl, roku, "U", LiteralMode::KeyType::BLURAYCOMMAND, "bluraypower", display); break;
+	case 'A': literalmode.handle(curl, roku, "S", LiteralMode::KeyType::BLURAYCOMMAND, "play", display); break;
 	case 'S': literalmode.handle(curl, roku, "S", LiteralMode::KeyType::BLURAYCOMMAND, "pause", display); break;
 	case 'T': literalmode.handle(curl, roku, "T", LiteralMode::KeyType::BLURAYCOMMAND, "stop", display); break;
 	case 'D': literalmode.handle(curl, roku, "D", LiteralMode::KeyType::BLURAYCOMMAND, "rewind", display); break;
