@@ -39,6 +39,6 @@ rokuctrl.cpp:115:5: warning:   when initialized here [-Wreorder]
   115 |     Roku_query(const JTB::Str& ip_input, Display& display): ip(ip_input), readBuffer("") {
       |     ^~~~~~~~~~
 rokuctrl.cpp: In function ‘int main(int, char**)’:
-rokuctrl.cpp:396:37: warning: catching polymorphic type ‘class std::runtime_error’ by value [-Wcatch-value=]
-  396 |         } catch (std::runtime_error e) {
+rokuctrl.cpp:398:37: warning: catching polymorphic type ‘class std::runtime_error’ by value [-Wcatch-value=]
+  398 |         } catch (std::runtime_error e) {
       |                                     ^
